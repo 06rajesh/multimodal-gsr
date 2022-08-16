@@ -35,7 +35,7 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
         inputs = tokenizer(
             captions,
             padding="max_length",
-            max_length=20,
+            max_length=30,
             truncation=True,
             return_token_type_ids=True,
             return_attention_mask=True,

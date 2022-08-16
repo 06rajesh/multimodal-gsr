@@ -392,7 +392,7 @@ def build(image_set, args):
     PATHS = {
         "train": root / "combined_jsons" / "train.json",
         "val": root / "combined_jsons" / "dev.json",
-        "test": root / "combined_jsons" / "dev.json",
+        "test": root / "combined_jsons" / "test.json",
     }
     ann_file = PATHS[image_set]
 
