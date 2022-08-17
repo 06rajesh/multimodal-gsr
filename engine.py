@@ -95,20 +95,38 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
 
 
 @torch.no_grad()
-def evaluate_swig(model, criterion, data_loader, device, output_dir):
+def evaluate_swig(model, tokenizer, criterion, data_loader, device, output_dir):
     model.eval()
     criterion.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Test:'
     print_freq = 10
 
-    for samples, targets in metric_logger.log_every(data_loader, print_freq, header):
+    for samples, captions, targets in metric_logger.log_every(data_loader, print_freq, header):
+        inputs = tokenizer(
+            captions,
+            padding="max_length",
+            max_length=30,
+            truncation=True,
+            return_token_type_ids=True,
+            return_attention_mask=True,
+            add_special_tokens=True,
+            return_tensors="pt",
+        )
+
+        mask = inputs['attention_mask'].bool()
+
+        inputs.update({
+            "mask": mask
+        })
+
         # data & target
         samples = samples.to(device)
+        inputs = inputs.to(device)
         targets = [{k: v.to(device) if type(v) is not str else v for k, v in t.items()} for t in targets]
 
         # model output & calculate loss
-        outputs = model(samples, targets)
+        outputs = model(samples, inputs, targets)
         loss_dict = criterion(outputs, targets, eval=True)
         weight_dict = criterion.weight_dict
 
