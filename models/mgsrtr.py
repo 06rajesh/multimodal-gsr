@@ -151,7 +151,11 @@ class MGSRTR(nn.Module):
         return out
 
 def build(args):
-    backbone = Backbone(args.backbone, False, False, False)
+    if not args.inference:
+        train_backbone = args.lr_backbone > 0
+    else:
+        train_backbone = False
+    backbone = Backbone(args.backbone, train_backbone, False, False)
 
     transformer = MultiTransformer(d_model=args.hidden_dim,
                                    dropout=args.dropout,

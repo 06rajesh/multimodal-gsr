@@ -16,6 +16,7 @@ import sys
 import torch
 import util.misc as utils
 from typing import Iterable
+from tqdm import tqdm
 
 from transformers import BertTokenizer
 
@@ -26,11 +27,14 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
     criterion.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
-    header = 'Epoch: [{}]'.format(epoch)
-    print_freq = 10
+    # header = 'Epoch: [{}]'.format(epoch)
+    # print_freq = 10
 
-    idx = 0
-    for samples, captions, targets in metric_logger.log_every(data_loader, print_freq, header):
+    train_iterator = tqdm(data_loader, desc="Batches")
+
+    for idx, (samples, captions, targets) in enumerate(train_iterator, 1):
+
+        train_iterator.set_description("batch = %d lr = %.6f loss = %.6f" % (idx, 0.00001, 0.0 / idx))
 
         inputs = tokenizer(
             captions,
@@ -47,9 +51,6 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
         inputs.update({
             "mask": mask
         })
-
-        print(inputs.input_ids.shape)
-        exit()
 
         # data & target
         samples = samples.to(device)
@@ -88,7 +89,7 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
         metric_logger.update(loss=loss_value, **loss_dict_reduced_scaled, **loss_dict_reduced_unscaled)
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
 
-        idx += 1
+        train_iterator.set_description("batch = %d lr = %.6f loss = %.6f" % (idx, optimizer.param_groups[0]["lr"], loss_value/idx))
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()

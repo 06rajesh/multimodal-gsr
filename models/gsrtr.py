@@ -66,6 +66,7 @@ class GSRTR(nn.Module):
                                              nn.Dropout(0.2),
                                              nn.Linear(hidden_dim*2, 1))
         
+        print("GSRTR: ", sum(p.numel() for p in self.parameters() if p.requires_grad))
 
     def forward(self, samples, targets=None, inference=False):
         """ 
@@ -87,6 +88,11 @@ class GSRTR(nn.Module):
 
         batch_size = src.shape[0]
         batch_verb, batch_noun, batch_bbox, batch_bbox_conf = [], [], [], []
+
+        i = 0
+        print(src[i:i+1].shape)
+        print(self.input_proj(src[i:i+1]).shape)
+        exit()
 
         # model prediction
         for i in range(batch_size):

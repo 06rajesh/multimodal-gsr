@@ -71,7 +71,7 @@ def main(args:Namespace):
             sampler_train = DistributedSampler(dataset_train)
             sampler_val = DistributedSampler(dataset_val, shuffle=False)
         else:
-            sampler_train = torch.utils.data.SequentialSampler(dataset_train)
+            sampler_train = torch.utils.data.RandomSampler(dataset_train)
             sampler_val = torch.utils.data.SequentialSampler(dataset_val)
     else:
         if args.dev:
@@ -166,11 +166,11 @@ def main(args:Namespace):
 if __name__ == '__main__':
     args = Namespace(
         lr=0.0001,
-        lr_backbone=1e-05,
+        lr_backbone=1e-5,
         lr_drop=100,
         weight_decay=0.0001,
         clip_max_norm=0.1,
-        batch_size=3,
+        batch_size=6,
         epochs=40,
         backbone='resnet50',
         position_embedding='learned',
