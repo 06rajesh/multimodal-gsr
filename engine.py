@@ -34,8 +34,6 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
 
     for idx, (samples, captions, targets) in enumerate(train_iterator, 1):
 
-        train_iterator.set_description("batch = %d lr = %.6f loss = %.6f" % (idx, 0.00001, 0.0 / idx))
-
         inputs = tokenizer(
             captions,
             padding="max_length",
@@ -89,7 +87,10 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
         metric_logger.update(loss=loss_value, **loss_dict_reduced_scaled, **loss_dict_reduced_unscaled)
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
 
-        train_iterator.set_description("batch = %d lr = %.6f loss = %.6f" % (idx, optimizer.param_groups[0]["lr"], loss_value/idx))
+        items = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
+        train_iterator.set_description("Batches: lr = %s, loss = %s, verb acc = %s noun acc = %s, bb acc = %s" %
+                                       (items['lr'], items['loss'], items['verb_acc_top1_unscaled'],
+                                        items['noun_acc_all_top1_unscaled'], items['bbox_acc_top5_unscaled']))
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
