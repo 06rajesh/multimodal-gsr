@@ -1,14 +1,14 @@
 # ----------------------------------------------------------------------------------------------
-# GSRTR Official Code
-# Copyright (c) Junhyeong Cho. All Rights Reserved
+# MGSRTR Official Code
+# Copyright (c) Rajesh Baidya. All Rights Reserved
 # Licensed under the Apache License 2.0 [see LICENSE for details]
 # ----------------------------------------------------------------------------------------------
-# Modified from DETR (https://github.com/facebookresearch/detr)
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved [see LICENSE for details]
+# Modified from GSRTR (https://github.com/jhcho99/gsrtr)
+# Copyright (c) Junhyeong Cho (jhcho99.cs@gmail.com) [see LICENSE for details]
 # ----------------------------------------------------------------------------------------------
 
 """
-GSRTR model and criterion classes.
+MGSRTR model and criterion classes.
 """
 import torch
 import torch.nn.functional as F
@@ -164,7 +164,7 @@ def build(args):
     bertmodel = BertModel.from_pretrained(bertmodelname)
     embedding_matrix = bertmodel.embeddings.word_embeddings.weight
 
-    tokenizer = BertTokenizer.from_pretrained(bertmodelname)
+    tokenizer = BertTokenizer.from_pretrained(bertmodelname, model_max_length=args.max_sentence_len)
 
     vbconfig=VisualBertConfig()
     vbconfig.visual_embedding_dim = args.dim_feedforward

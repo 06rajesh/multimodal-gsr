@@ -65,10 +65,11 @@ class VisualBertEmbeddings(nn.Module):
         else:
             input_shape = inputs_embeds.size()[:-1]
 
+        n_inputs = input_shape[0]
         seq_length = input_shape[1]
 
         if position_ids is None:
-            position_ids = self.position_ids[:, :seq_length]
+            position_ids = self.position_ids[:n_inputs, :seq_length]
 
         if inputs_embeds is None:
             inputs_embeds = self.word_embeddings(input_ids)

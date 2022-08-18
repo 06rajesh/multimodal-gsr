@@ -174,6 +174,7 @@ if __name__ == '__main__':
         epochs=40,
         backbone='resnet50',
         position_embedding='learned',
+        max_sentence_len=30,
         enc_layers=6,
         dec_layers=6,
         dim_feedforward=2048,
