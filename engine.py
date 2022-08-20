@@ -91,7 +91,6 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
         train_iterator.set_description("Batches: lr = %.4f, loss = %.4f, verb acc = %.4f noun acc = %.4f, bb acc =  %.4f" %
                                        (items['lr'], items['loss'], items['verb_acc_top1_unscaled'],
                                         items['noun_acc_all_top1_unscaled'], items['bbox_acc_top5_unscaled']))
-        exit()
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
