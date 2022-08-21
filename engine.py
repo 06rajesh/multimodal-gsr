@@ -1,10 +1,9 @@
 # ----------------------------------------------------------------------------------------------
-# GSRTR Official Code
-# Copyright (c) Junhyeong Cho. All Rights Reserved 
-# Licensed under the Apache License 2.0 [see LICENSE for details]
+# MGSRTR Official Code
+# Copyright (c) Rajesh Baidya. All Rights Reserved
 # ----------------------------------------------------------------------------------------------
-# Modified from DETR (https://github.com/facebookresearch/detr)
-# Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved [see LICENSE for details]
+# Modified from GSRTR (https://github.com/jhcho99/gsrtr)
+# Licensed under the Apache License 2.0 [see LICENSE for details]
 # ----------------------------------------------------------------------------------------------
 
 """
@@ -19,18 +18,20 @@ from typing import Iterable
 from tqdm import tqdm
 
 from transformers import BertTokenizer
+from torch.utils.tensorboard import SummaryWriter
 
 def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
-                    device: torch.device, epoch: int, max_norm: float = 0):
+                    device: torch.device, epoch: int, max_norm: float = 0, writer:SummaryWriter = None):
     model.train()
     criterion.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
-    # header = 'Epoch: [{}]'.format(epoch)
     # print_freq = 10
 
-    train_iterator = tqdm(data_loader, desc="Batches")
+    n_batches = len(data_loader)
+    loader_desc = 'Epoch [{:d}]: lr = {:.4f}, loss = {:.4f}, accuracy (verb = {:.4f}, noun = {:.4f}, bounding box =  {:.4f})'
+    train_iterator = tqdm(data_loader, desc=loader_desc.format(epoch, 0.0, 0.0, 0.0, 0.0, 0.0))
 
     for idx, (samples, captions, targets) in enumerate(train_iterator, 1):
 
@@ -88,9 +89,17 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
 
         items = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
-        train_iterator.set_description("Batches: lr = %.4f, loss = %.4f, verb acc = %.4f noun acc = %.4f, bb acc =  %.4f" %
-                                       (items['lr'], items['loss'], items['verb_acc_top1_unscaled'],
+        train_iterator.set_description(loader_desc.format(epoch, items['lr'], items['loss'], items['verb_acc_top1_unscaled'],
                                         items['noun_acc_all_top1_unscaled'], items['bbox_acc_top5_unscaled']))
+
+        if writer:
+            writer.add_scalar("training loss", items['loss'], epoch*n_batches+idx)
+            writer.add_scalars('accuracy', {
+                "noun": items['noun_acc_all_top1_unscaled'],
+                "verb": items['verb_acc_top1_unscaled'],
+                "bounding box": items['bbox_acc_top5_unscaled'],
+            }, epoch*n_batches+idx)
+
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
@@ -103,10 +112,13 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device, output_dir):
     model.eval()
     criterion.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
-    header = 'Test:'
-    print_freq = 10
+    # header = 'Test:'
+    # print_freq = 10
 
-    for samples, captions, targets in metric_logger.log_every(data_loader, print_freq, header):
+    loader_desc = 'Test: loss = {:.4f}, accuracy (verb = {:.4f}, noun = {:.4f}, bounding box =  {:.4f})'
+    test_iterator = tqdm(data_loader, desc=loader_desc.format(0.0, 0.0, 0.0, 0.0))
+
+    for idx, (samples, captions, targets) in enumerate(test_iterator, 1):
         inputs = tokenizer(
             captions,
             padding="max_length",
@@ -143,6 +155,11 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device, output_dir):
         loss_value = losses_reduced_scaled.item()
 
         metric_logger.update(loss=loss_value, **loss_dict_reduced_scaled, **loss_dict_reduced_unscaled)
+
+        items = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
+        test_iterator.set_description(
+            loader_desc.format(items['loss'], items['verb_acc_top1_unscaled'],
+             items['noun_acc_all_top1_unscaled'], items['bbox_acc_top5_unscaled']))
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()

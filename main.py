@@ -12,6 +12,7 @@ from datasets import build_dataset
 import util.misc as utils
 from models import build_model
 from engine import train_one_epoch, evaluate_swig
+from torch.utils.tensorboard import SummaryWriter
 
 class Namespace:
     def __init__(self, **kwargs):
@@ -22,6 +23,11 @@ def main(args:Namespace):
     # print("git:\n  {}\n".format(utils.get_sha()))
 
     device = torch.device(args.device)
+
+    output_dir = Path(args.output_dir)
+
+    summary_dir = output_dir / 'summary' / 'mgsrtr'
+    writer = SummaryWriter(str(summary_dir))
 
     # fix the seed for reproducibility
     seed = args.seed + utils.get_rank()
@@ -85,8 +91,6 @@ def main(args:Namespace):
             else:
                 sampler_test = torch.utils.data.SequentialSampler(dataset_test)
 
-    output_dir = Path(args.output_dir)
-
     # dataset loader
     if not args.test and not args.dev:
         batch_sampler_train = torch.utils.data.BatchSampler(sampler_train, args.batch_size, drop_last=True)
@@ -125,16 +129,17 @@ def main(args:Namespace):
     print("Start training")
     start_time = time.time()
     max_test_mean_acc = 42
+
     for epoch in range(args.start_epoch, args.epochs):
         # train one epoch
         if args.distributed:
             sampler_train.set_epoch(epoch)
         train_stats = train_one_epoch(model, tokenizer, criterion, data_loader_train, optimizer,
-                                      device, epoch, args.clip_max_norm)
+                                      device, epoch, args.clip_max_norm, writer=writer)
         lr_scheduler.step()
 
         # evaluate
-        test_stats = evaluate_swig(model, criterion, data_loader_val, device, args.output_dir)
+        test_stats = evaluate_swig(model, tokenizer, criterion, data_loader_val, device, args.output_dir)
 
         # log & output
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
@@ -171,7 +176,6 @@ if __name__ == '__main__':
         weight_decay=0.0001,
         clip_max_norm=0.1,
         batch_size=6,
-        epochs=40,
         backbone='resnet50',
         position_embedding='learned',
         max_sentence_len=30,
@@ -194,7 +198,8 @@ if __name__ == '__main__':
         output_dir='',
         device='cpu',
         seed=42,
-        start_epoch=0,
+        epochs=40,
+        start_epoch=0, # epochs should start from 0 and continue less then epochs
         num_workers=4,
         saved_model='gsrtr_checkpoint.pth',
         world_size=1,
