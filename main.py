@@ -115,7 +115,7 @@ def main(args:Namespace):
         elif args.test:
             data_loader = data_loader_test
 
-        test_stats = evaluate_swig(model, criterion, data_loader, device, args.output_dir)
+        test_stats = evaluate_swig(model, tokenizer, criterion, data_loader, device, args.output_dir)
         log_stats = {**{f'test_{k}': v for k, v in test_stats.items()}}
 
         # write log
@@ -175,7 +175,7 @@ if __name__ == '__main__':
         lr_drop=100,
         weight_decay=0.0001,
         clip_max_norm=0.1,
-        batch_size=6,
+        batch_size=16,
         backbone='resnet50',
         position_embedding='learned',
         max_sentence_len=30,
@@ -193,15 +193,15 @@ if __name__ == '__main__':
         dataset_file='swig',
         swig_path='SWiG',
         dev=False,
-        test=False,
+        test=True,
         inference=False,
         output_dir='',
         device='cpu',
         seed=42,
         epochs=40,
-        start_epoch=0, # epochs should start from 0 and continue less then epochs
+        start_epoch=0, # epochs should start from 0 and continue until less then epochs
         num_workers=4,
-        saved_model='gsrtr_checkpoint.pth',
+        saved_model='pretrained/checkpoint.pth',
         world_size=1,
         dist_url='env://'
     )

@@ -27,7 +27,7 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
     criterion.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
-    # print_freq = 10
+    print_freq = 10
 
     n_batches = len(data_loader)
     loader_desc = 'Epoch [{:d}]: lr = {:.4f}, loss = {:.4f}, accuracy (verb = {:.4f}, noun = {:.4f}, bounding box =  {:.4f})'
@@ -88,17 +88,18 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
         metric_logger.update(loss=loss_value, **loss_dict_reduced_scaled, **loss_dict_reduced_unscaled)
         metric_logger.update(lr=optimizer.param_groups[0]["lr"])
 
-        items = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
-        train_iterator.set_description(loader_desc.format(epoch, items['lr'], items['loss'], items['verb_acc_top1_unscaled'],
-                                        items['noun_acc_all_top1_unscaled'], items['bbox_acc_top5_unscaled']))
+        if idx%print_freq == 0:
+            items = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
+            train_iterator.set_description(loader_desc.format(epoch, items['lr'], items['loss'], items['verb_acc_top1_unscaled'],
+                                            items['noun_acc_all_top1_unscaled'], items['bbox_acc_top5_unscaled']))
 
-        if writer:
-            writer.add_scalar("training loss", items['loss'], epoch*n_batches+idx)
-            writer.add_scalars('accuracy', {
-                "noun": items['noun_acc_all_top1_unscaled'],
-                "verb": items['verb_acc_top1_unscaled'],
-                "bounding box": items['bbox_acc_top5_unscaled'],
-            }, epoch*n_batches+idx)
+            if writer:
+                writer.add_scalar("training loss", items['loss'], epoch*n_batches+idx)
+                writer.add_scalars('accuracy', {
+                    "noun": items['noun_acc_all_top1_unscaled'],
+                    "verb": items['verb_acc_top1_unscaled'],
+                    "bounding box": items['bbox_acc_top5_unscaled'],
+                }, epoch*n_batches+idx)
 
 
     # gather the stats from all processes
@@ -112,8 +113,7 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device, output_dir):
     model.eval()
     criterion.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
-    # header = 'Test:'
-    # print_freq = 10
+    print_freq = 10
 
     loader_desc = 'Test: loss = {:.4f}, accuracy (verb = {:.4f}, noun = {:.4f}, bounding box =  {:.4f})'
     test_iterator = tqdm(data_loader, desc=loader_desc.format(0.0, 0.0, 0.0, 0.0))
@@ -156,10 +156,11 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device, output_dir):
 
         metric_logger.update(loss=loss_value, **loss_dict_reduced_scaled, **loss_dict_reduced_unscaled)
 
-        items = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
-        test_iterator.set_description(
-            loader_desc.format(items['loss'], items['verb_acc_top1_unscaled'],
-             items['noun_acc_all_top1_unscaled'], items['bbox_acc_top5_unscaled']))
+        if idx % print_freq == 0:
+            items = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
+            test_iterator.set_description(
+                loader_desc.format(items['loss'], items['verb_acc_top1_unscaled'],
+                 items['noun_acc_all_top1_unscaled'], items['bbox_acc_top5_unscaled']))
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
