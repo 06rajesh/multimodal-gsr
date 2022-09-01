@@ -1,0 +1,4 @@
+verb: riding 
+role: agent, noun: woman.n.01 
+role: vehicle, noun: horse.n.01 
+role: place, noun: racetrack.n.01 
