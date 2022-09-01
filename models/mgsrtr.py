@@ -120,10 +120,10 @@ class MGSRTR(nn.Module):
                                                              pos[i:i+1], self.vidx_ridx, targets=targets[i],
                                                              inference=inference)
             else:
-                verb_pred, rhs, num_roles = self.transformer(self.input_proj(src[i:i + 1]),
+                verb_pred, rhs, num_roles = self.transformer(embedding[i:i+1],
                                                              combined_mask[i:i + 1], self.enc_verb_query_embed.weight,
                                                              self.verb_query_embed.weight, self.role_query_embed.weight,
-                                                             pos[-1][i:i+1], self.vidx_ridx, inference=inference)
+                                                             pos[i:i+1], self.vidx_ridx, inference=inference)
             noun_pred = self.noun_classifier(rhs)
             noun_pred = F.pad(noun_pred, (0, 0, 0, MAX_NUM_ROLES - num_roles), mode='constant', value=0)[-1].view(1,
                                                                                                                   MAX_NUM_ROLES,
