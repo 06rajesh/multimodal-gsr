@@ -139,11 +139,11 @@ def main(args:Namespace):
         lr_scheduler.step()
 
         # evaluate
-        test_stats = evaluate_swig(model, tokenizer, criterion, data_loader_val, device, args.output_dir)
+        # test_stats = evaluate_swig(model, tokenizer, criterion, data_loader_val, device, args.output_dir)
 
         # log & output
+        # **{f'test_{k}': v for k, v in test_stats.items()},
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                     **{f'test_{k}': v for k, v in test_stats.items()},
                      'epoch': epoch,
                      'n_parameters': n_parameters}
         if args.output_dir:
