@@ -1,0 +1,4 @@
+verb: admiring 
+role: agent, noun: man.n.01 
+role: admired, noun: 'blank' 
+role: place, noun: outdoors.n.01 

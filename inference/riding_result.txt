@@ -1,0 +1,5 @@
+verb: wheeling 
+role: agent, noun: man.n.01 
+role: item, noun: body.n.01 
+role: carrier, noun: bicycle.n.01 
+role: place, noun: sidewalk.n.01 

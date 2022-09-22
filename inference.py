@@ -175,7 +175,6 @@ def inference(model, device, tokenizer, caption, image_path=None, inference=Fals
     for i in range(num_roles):
         top1_noun = torch.topk(pred_noun[i], k=1, dim=0)[1].item()
         role_labels.append(idx_to_role[roles[i]])
-        print(idx_to_class[top1_noun])
         noun_labels.append(noun2synset(idx_to_class[top1_noun]))
 
     # convert bbox
@@ -208,9 +207,8 @@ def inference(model, device, tokenizer, caption, image_path=None, inference=Fals
 
 
 def main(args):
-    utils.init_distributed_mode(args)
+    # utils.init_distributed_mode(args)
     print("git:\n  {}\n".format(utils.get_sha()))
-    print(args)
 
     if not args.inference:
         assert False, f"Please set inference to True"
@@ -275,8 +273,8 @@ if __name__ == '__main__':
         saved_model='pretrained/checkpoint.pth',
         world_size=1,
         dist_url='env://',
-        image_path='./inference/falling.jpg',
-        caption='A person is falling from the horse on a race track.'
+        image_path='./inference/standing.jpg',
+        caption='Two young guys are standing on a yard.'
     )
 
     nltk.download('wordnet')

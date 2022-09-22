@@ -193,7 +193,7 @@ if __name__ == '__main__':
         dataset_file='swig',
         swig_path='SWiG',
         dev=False,
-        test=True,
+        test=False,
         inference=False,
         output_dir='',
         device='cpu',
