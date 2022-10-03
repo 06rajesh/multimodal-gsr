@@ -27,7 +27,7 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
     criterion.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
-    print_freq = 10
+    print_freq = 100
 
     n_batches = len(data_loader)
     loader_desc = 'Epoch [{:d}]: lr = {:.4f}, loss = {:.4f}, accuracy (verb = {:.4f}, noun = {:.4f}, bounding box =  {:.4f})'
