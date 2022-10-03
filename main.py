@@ -139,13 +139,20 @@ def main(args:Namespace):
         lr_scheduler.step()
 
         # evaluate
-        # test_stats = evaluate_swig(model, tokenizer, criterion, data_loader_val, device, args.output_dir)
+        test_stats = evaluate_swig(model, tokenizer, criterion, data_loader_val, device, args.output_dir)
 
         # log & output
         # **{f'test_{k}': v for k, v in test_stats.items()},
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
+                     **{f'test_{k}': v for k, v in test_stats.items()},
                      'epoch': epoch,
                      'n_parameters': n_parameters}
+
+        writer.add_scalars('epoch_loss', {
+            "training": train_stats['loss'],
+            "validation": test_stats['loss'],
+        }, epoch)
+
         if args.output_dir:
             checkpoint_paths = [output_dir / 'checkpoint.pth']
             # save checkpoint for every new max accuracy
@@ -173,17 +180,17 @@ if __name__ == '__main__':
         lr=0.0001,
         lr_backbone=1e-5,
         lr_drop=100,
-        weight_decay=0.0001,
+        weight_decay=0.0005,
         clip_max_norm=0.1,
         batch_size=16,
         backbone='resnet50',
         position_embedding='learned',
-        max_sentence_len=30,
+        max_sentence_len=100,
         enc_layers=6,
         dec_layers=6,
         dim_feedforward=2048,
         hidden_dim=512,
-        dropout=0.15,
+        dropout=0.25,
         nheads=8,
         noun_loss_coef=1,
         verb_loss_coef=1,
@@ -193,7 +200,7 @@ if __name__ == '__main__':
         dataset_file='swig',
         swig_path='SWiG',
         dev=False,
-        test=False,
+        test=True,
         inference=False,
         output_dir='',
         device='cpu',
@@ -201,7 +208,7 @@ if __name__ == '__main__':
         epochs=40,
         start_epoch=0, # epochs should start from 0 and continue until less then epochs
         num_workers=4,
-        saved_model='pretrained/checkpoint.pth',
+        saved_model='pretrained/v2/checkpoint.pth',
         world_size=1,
         dist_url='env://'
     )
