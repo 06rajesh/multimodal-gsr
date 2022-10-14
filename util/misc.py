@@ -510,7 +510,9 @@ def get_ground_truth(target, SWiG_json, idx_to_role, device):
     img_name = target['img_name'].split('/')[-1]
     for role in target['roles']:
         role_name = idx_to_role[role]
-        if SWiG_json[img_name]["bb"][role_name][0] == -1:
+        if role_name not in SWiG_json[img_name]["bb"].keys():
+            bboxes.append(torch.tensor([-1, -1, -1, -1], device=device))
+        elif SWiG_json[img_name]["bb"][role_name][0] == -1:
             bboxes.append(torch.tensor([-1, -1, -1, -1], device=device))
         else:
             b = [int(i) for i in SWiG_json[img_name]["bb"][role_name]]
