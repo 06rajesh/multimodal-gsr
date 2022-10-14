@@ -8,8 +8,16 @@
 # ----------------------------------------------------------------------------------------------
 
 from .swig import build as build_swig
+from .swig import build_flicker
 
 def build_dataset(image_set, args):
     if args.dataset_file == 'swig':
         return build_swig(image_set, args)
+    elif args.dataset_file == 'flicker30k':
+        return build_flicker(image_set, args)
     raise ValueError(f'dataset {args.dataset_file} not supported')
+
+# def build_flicker_dataset(image_set, args):
+#     if args.dataset_file == 'flicker30k':
+#         return build_flicker(image_set, args)
+#     raise ValueError(f'dataset {args.dataset_file} not supported')

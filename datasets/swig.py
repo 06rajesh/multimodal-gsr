@@ -34,7 +34,7 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 class CSVDataset(Dataset):
     """CSV dataset."""
 
-    def __init__(self, img_folder, ann_file, class_list, verb_path, role_path, verb_info, is_training, transform=None):
+    def __init__(self, img_folder, ann_file, class_list, verb_path, role_path, verb_info, is_training, transform=None, dataset='swig'):
         """
         Parameters:
             - ann_file : CSV file with annotations
@@ -48,6 +48,7 @@ class CSVDataset(Dataset):
         self.verb_info = verb_info
         self.transform = transform
         self.is_training = is_training
+        self.dataset = dataset
         self.color_change = transforms.Compose([transforms.ColorJitter(hue=0.1, saturation=0.1, brightness=0.1), transforms.RandomGrayscale(p=0.3)])
 
         with open(self.class_list, 'r') as file:
@@ -138,9 +139,20 @@ class CSVDataset(Dataset):
             sample = self.transform(sample)
         return sample
 
+    def process_flicker_img_path(self, img_path):
+        filepath = img_path.split("/")[0:-1]
+        unique_filename = img_path.split("/")[-1]
+        filename = unique_filename.split('_')[-1]
+        filename = filename + '.jpg'
+        filepath.append(filename)
+        processed_path = "/".join(filepath)
+        return processed_path
 
     def load_image(self, image_index):
-        im = Image.open(self.image_names[image_index])
+        img_path = self.image_names[image_index]
+        if self.dataset == 'flicker30k':
+            img_path = self.process_flicker_img_path(img_path)
+        im = Image.open(img_path)
         im = im.convert('RGB')
 
         if self.is_training:
@@ -181,10 +193,12 @@ class CSVDataset(Dataset):
         for image in json:
             total_anns = 0
             verb = json[image]['verb']
-            order = verb_orders[verb]['order']
+            orders = verb_orders[verb]['order']
             img_file = f"{self.img_folder}/" + image
             result[img_file] = []
-            for role in order:
+            if self.dataset == 'flicker30k':
+                orders = json[image]['bb'].keys()
+            for role in orders:
                 total_anns += 1
                 [x1, y1, x2, y2] = json[image]['bb'][role]
                 class1 = json[image]['frames'][0][role]
@@ -421,6 +435,59 @@ def build(image_set, args):
                          verb_info=verb_orders,
                          is_training=is_training,
                          transform=tfs)
+
+    if is_training:
+        args.SWiG_json_train = dataset.SWiG_json
+    else:
+        if not args.test:
+            args.SWiG_json_dev = dataset.SWiG_json
+        else:
+            args.SWiG_json_test = dataset.SWiG_json
+
+    args.idx_to_verb = dataset.idx_to_verb
+    args.idx_to_role = dataset.idx_to_role
+    args.idx_to_class = dataset.idx_to_class
+    args.vidx_ridx = dataset.vidx_ridx
+
+    return dataset
+
+def build_flicker(image_set, args):
+    root = Path(args.flicker_path)
+    img_folder = root / "flickr30k-images"
+
+    PATHS = {
+        "train": root / "flicker30k-jsons" / "train.json",
+        "val": root / "flicker30k-jsons" / "dev.json",
+        "test": root / "flicker30k-jsons" / "test.json",
+    }
+    ann_file = PATHS[image_set]
+
+    classes_file = root / "flicker30k-jsons" / "train_classes.csv"
+    verb_path = root / "flicker30k-jsons" / "verb_indices.txt"
+    role_path = root / "flicker30k-jsons" / "role_indices.txt"
+
+    with open(f'{args.flicker_path}/flicker30k-jsons/flickersitu_space.json') as f:
+        all = json.load(f)
+        verb_orders = all['verbs']
+
+    is_training = (image_set == 'train')
+
+    TRANSFORMS = {
+        "train": transforms.Compose([Normalizer(), Augmenter(), Resizer(True)]),
+        "val": transforms.Compose([Normalizer(), Resizer(False)]),
+        "test": transforms.Compose([Normalizer(), Resizer(False)]),
+    }
+    tfs = TRANSFORMS[image_set]
+
+    dataset = CSVDataset(img_folder=str(img_folder),
+                         ann_file=ann_file,
+                         class_list=classes_file,
+                         verb_path=verb_path,
+                         role_path=role_path,
+                         verb_info=verb_orders,
+                         is_training=is_training,
+                         transform=tfs,
+                         dataset='flicker30k')
 
     if is_training:
         args.SWiG_json_train = dataset.SWiG_json

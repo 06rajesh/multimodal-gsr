@@ -36,7 +36,7 @@ def main(args:Namespace):
     random.seed(seed)
 
     # check dataset
-    if args.dataset_file == "swig":
+    if args.dataset_file == "swig" or args.dataset_file == 'flicker30k':
         from datasets.swig import collater
     else:
         assert False, f"dataset {args.dataset_file} is not supported now"
@@ -197,10 +197,12 @@ if __name__ == '__main__':
         bbox_loss_coef=5,
         bbox_conf_loss_coef=5,
         giou_loss_coef=5,
-        dataset_file='swig',
+        # dataset_file='swig',
+        dataset_file='flicker30k',
         swig_path='SWiG',
+        flicker_path='flicker30k',
         dev=False,
-        test=True,
+        test=False,
         inference=False,
         output_dir='',
         device='cpu',

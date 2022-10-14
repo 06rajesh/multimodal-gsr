@@ -458,6 +458,8 @@ def accuracy_swig_bbox(pred_bbox, pred_bbox_conf, gt_bbox, num_roles, noun_corre
     shift_0, shift_1, scale  = target['shift_0'], target['shift_1'], target['scale']
 
     if num_roles > 0:
+        # for flicker30k dataset where num roles changes from the fixed roles of the verbs
+        num_roles = len(pred_bbox)
         # convert predicted boxes
         for i in range(num_roles):
             pred_bbox[i][0] = max(pred_bbox[i][0] - shift_1, 0)
