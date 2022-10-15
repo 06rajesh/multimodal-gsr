@@ -193,12 +193,10 @@ class CSVDataset(Dataset):
         for image in json:
             total_anns = 0
             verb = json[image]['verb']
-            orders = verb_orders[verb]['order']
+            order = verb_orders[verb]['order']
             img_file = f"{self.img_folder}/" + image
             result[img_file] = []
-            if self.dataset == 'flicker30k':
-                orders = json[image]['bb'].keys()
-            for role in orders:
+            for role in order:
                 total_anns += 1
                 [x1, y1, x2, y2] = json[image]['bb'][role]
                 class1 = json[image]['frames'][0][role]

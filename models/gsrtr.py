@@ -90,9 +90,6 @@ class GSRTR(nn.Module):
         batch_verb, batch_noun, batch_bbox, batch_bbox_conf = [], [], [], []
 
         i = 0
-        print(src[i:i+1].shape)
-        print(self.input_proj(src[i:i+1]).shape)
-        exit()
 
         # model prediction
         for i in range(batch_size):
