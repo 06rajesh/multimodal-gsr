@@ -17,6 +17,7 @@ from util.misc import (NestedTensor, nested_tensor_from_tensor_list,
                        accuracy, accuracy_swig, accuracy_swig_bbox)
 
 from transformers import BertTokenizer, VisualBertForVisualReasoning, VisualBertConfig, BertModel
+from torchsummary import summary
 
 from .visual_bert import VisualBertEmbeddings
 from .multi_transformer import MultiTransformer
@@ -98,6 +99,7 @@ class MGSRTR(nn.Module):
         embedding, pos = self.embeddings(
             input_ids=text_inputs.input_ids,
             token_type_ids=text_inputs.token_type_ids,
+            attention_mask=text_inputs.attention_mask,
             visual_embeds=projected,
             visual_token_type_ids=None,
         )
@@ -165,18 +167,18 @@ def build(args):
                                    num_decoder_layers=args.dec_layers)
 
     bertmodelname = "bert-base-uncased"
-    bertmodel = BertModel.from_pretrained(bertmodelname)
-    embedding_matrix = bertmodel.embeddings.word_embeddings.weight
+    # bertmodel = BertModel.from_pretrained(bertmodelname)
+    # embedding_matrix = bertmodel.embeddings.word_embeddings.weight
 
     tokenizer = BertTokenizer.from_pretrained(bertmodelname, model_max_length=args.max_sentence_len)
 
     vbconfig=VisualBertConfig()
     vbconfig.visual_embedding_dim = args.dim_feedforward
-    vbconfig.word_embedding_dim = embedding_matrix.shape[1]
+    vbconfig.word_embedding_dim = vbconfig.hidden_size # embedding_matrix.shape[1]
     vbconfig.hidden_size = args.hidden_dim
     vbconfig.batch_size = args.batch_size
 
-    vbertembedding = VisualBertEmbeddings(vbconfig, word_embedding_weight=embedding_matrix)
+    vbertembedding = VisualBertEmbeddings(vbconfig, bert_model_name=bertmodelname)
 
     model = MGSRTR(backbone,
                    vbertembedding,

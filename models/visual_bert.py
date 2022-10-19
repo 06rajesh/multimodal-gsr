@@ -7,13 +7,18 @@ import torch
 import torch.utils.checkpoint
 from torch import nn
 from torch.nn import CrossEntropyLoss, KLDivLoss, LogSoftmax
+from transformers import BertModel
 
 class VisualBertEmbeddings(nn.Module):
     """Construct the embeddings from word, position and token_type embeddings and visual embeddings."""
 
-    def __init__(self, config, word_embedding_weight=None):
+    def __init__(self, config, bert_model_name="bert-base-uncased"): #word_embedding_weight=None
         super().__init__()
-        self.word_embeddings = nn.Embedding(config.vocab_size, config.word_embedding_dim, padding_idx=config.pad_token_id)
+
+        self.bert_model = BertModel.from_pretrained(bert_model_name)
+        self.bert_model.requires_grad_(False)
+
+        # self.word_embeddings = nn.Embedding(config.vocab_size, config.word_embedding_dim, padding_idx=config.pad_token_id)
         self.position_embeddings = nn.Embedding(config.max_position_embeddings, config.hidden_size)
         self.token_type_embeddings = nn.Embedding(config.type_vocab_size, config.hidden_size)
 
@@ -30,9 +35,9 @@ class VisualBertEmbeddings(nn.Module):
                              .expand((1, -1)).repeat(config.batch_size, 1)
                              )
 
-        if word_embedding_weight != None:
-            self.word_embeddings.weight.data.copy_(word_embedding_weight)
-            self.word_embeddings.requires_grad_(False)
+        # if word_embedding_weight != None:
+        #     self.word_embeddings.weight.data.copy_(word_embedding_weight)
+        #     self.word_embeddings.requires_grad_(False)
 
         # For Visual Features
         # Token type and position embedding for image features
@@ -54,6 +59,7 @@ class VisualBertEmbeddings(nn.Module):
         self,
         input_ids=None,
         token_type_ids=None,
+        attention_mask=None,
         position_ids=None,
         inputs_embeds=None,
         visual_embeds=None,
@@ -72,15 +78,17 @@ class VisualBertEmbeddings(nn.Module):
             position_ids = self.position_ids[:n_inputs, :seq_length]
 
         if inputs_embeds is None:
-            inputs_embeds = self.word_embeddings(input_ids)
+            bert_outputs = self.bert_model(input_ids=input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids)
+            inputs_embeds = bert_outputs.last_hidden_state
+            # inputs_embeds = self.word_embeddings(input_ids)
             inputs_embeds = self.word_embedding_projection(inputs_embeds)
 
         if token_type_ids is None:
             token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=self.position_ids.device)
 
-        token_type_embeddings = self.token_type_embeddings(token_type_ids)
+        token_type_embeds = self.token_type_embeddings(token_type_ids)
 
-        embeddings = inputs_embeds + token_type_embeddings
+        embeddings = inputs_embeds + token_type_embeds
 
         # Absolute Position Embeddings
         position_embeddings = self.position_embeddings(position_ids)
@@ -99,7 +107,7 @@ class VisualBertEmbeddings(nn.Module):
                 # image_text_alignment = Batch x image_length x alignment_number.
                 # Each element denotes the position of the word corresponding to the image feature. -1 is the padding value.
 
-                dtype = token_type_embeddings.dtype
+                dtype = token_type_embeds.dtype
                 image_text_alignment_mask = (image_text_alignment != -1).long()
                 # Get rid of the -1.
                 image_text_alignment = image_text_alignment_mask * image_text_alignment

@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
     captions = [
         "The attacker is attacking with a gun.",
-        "Mary and Samantha arrived at the bus station early but waited until noon for the bus."
+        "Mary and Samantha arrived at the bus station early but waited until noon for the bus.",
         "the people are skiing at the slope",
         "the group are skiing at the ski run",
         "the unit is skiing at the ski slope",
@@ -113,19 +113,40 @@ if __name__ == '__main__':
         "a person is folding in paper in a triangle on the table",
     ]
 
-    model, tokenizer = build_model()
+    # model, tokenizer = build_model()
+    #
+    # vocabs = {}
+    # for c in captions:
+    #     inputs = tokenizer(c)
+    #
+    #     ids = inputs['input_ids']
+    #     decoded = tokenizer.convert_ids_to_tokens(ids)
+    #
+    #     for i in range(len(decoded)):
+    #         if decoded[i] != '[CLS]' and decoded[i] != '[SEP]':
+    #             if decoded[i] not in vocabs:
+    #                 vocabs[decoded[i]] = ids[i]
+    #
+    # print(vocabs)
+    # tsne_plot(model, vocabs)
 
-    vocabs = {}
-    for c in captions:
-        inputs = tokenizer(c)
+    bertmodelname = "bert-base-uncased"
+    bertmodel = BertModel.from_pretrained(bertmodelname)
 
-        ids = inputs['input_ids']
-        decoded = tokenizer.convert_ids_to_tokens(ids)
+    tokenizer = BertTokenizer.from_pretrained(bertmodelname, model_max_length=25)
 
-        for i in range(len(decoded)):
-            if decoded[i] != '[CLS]' and decoded[i] != '[SEP]':
-                if decoded[i] not in vocabs:
-                    vocabs[decoded[i]] = ids[i]
+    # 1.Tokenize the sequence:
+    tokens = tokenizer(
+        captions[0:5],
+        padding='max_length',
+        truncation=True,
+        return_token_type_ids=True,
+        return_attention_mask=True,
+        add_special_tokens=True,
+        return_tensors="pt"
+    )
+    # print(tokens)
 
-    print(vocabs)
-    tsne_plot(model, vocabs)
+    outputs = bertmodel(**tokens)
+    print(outputs.last_hidden_state.shape)
+    print(outputs.pooler_output.shape)
