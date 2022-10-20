@@ -4,7 +4,9 @@ import random
 import json
 import datetime
 import time
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 from torch.utils.data import DataLoader, DistributedSampler
 
@@ -53,9 +55,16 @@ def main(args:Namespace):
     model, tokenizer, criterion = build_model(args)
     model.to(device)
     model_without_ddp = model
+
+    if args.resume:
+        model_path = Path(args.output_dir, args.saved_model)
+        checkpoint = torch.load(model_path, map_location=device)
+        model.load_state_dict(checkpoint['model'])
+
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
         model_without_ddp = model.module
+
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print('number of params:', n_parameters)
     param_dicts = [
@@ -176,6 +185,34 @@ def main(args:Namespace):
 
 
 if __name__ == '__main__':
+    load_dotenv()
+
+    dataset = os.getenv('DATASET', 'flicker30k')
+    device = os.getenv('DEVICE', 'cpu')
+    dataset_path = os.getenv('DATASET_PATH', './flicker30k')
+    resume_str = os.getenv('RESUME', "False")
+    start_epoch = int(os.getenv("START_EPOCH", "0"))
+    version = os.getenv("VERSION", "V1")
+
+    resume = False
+    if resume_str.lower() == "true":
+        resume = True
+
+    root = Path(dataset_path)
+    output_dir = root / 'pretrained' / version
+    saved_model_path = output_dir / 'checkpoint.pth'
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    flicker_path = './flicker30k'
+    swig_path = './SWiG'
+
+    if dataset == 'flicker30k':
+        flicker_path = dataset_path
+    elif dataset == 'swig':
+        swig_path = dataset_path
+
     args = Namespace(
         lr=0.0001,
         lr_backbone=1e-5,
@@ -198,21 +235,25 @@ if __name__ == '__main__':
         bbox_conf_loss_coef=5,
         giou_loss_coef=5,
         # dataset_file='swig',
-        dataset_file='flicker30k',
-        swig_path='SWiG',
-        flicker_path='flicker30k',
+        dataset_file=dataset,
+        swig_path=swig_path,
+        flicker_path=flicker_path,
         dev=False,
         test=False,
         inference=False,
-        output_dir='',
-        device='cpu',
+        output_dir=str(output_dir),
+        device=device,
         seed=42,
         epochs=40,
-        start_epoch=0, # epochs should start from 0 and continue until less then epochs
+        start_epoch=start_epoch, # epochs should start from 0 and continue until less then epochs
+        resume=resume,
         num_workers=4,
-        saved_model='pretrained/v2/checkpoint.pth',
+        saved_model=saved_model_path,
         world_size=1,
         dist_url='env://'
     )
+
+    # attrs = vars(args)
+    # print(attrs)
 
     main(args)
