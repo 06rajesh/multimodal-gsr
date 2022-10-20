@@ -17,7 +17,6 @@ from util.misc import (NestedTensor, nested_tensor_from_tensor_list,
                        accuracy, accuracy_swig, accuracy_swig_bbox)
 
 from transformers import BertTokenizer, VisualBertForVisualReasoning, VisualBertConfig, BertModel
-from torchsummary import summary
 
 from .visual_bert import VisualBertEmbeddings
 from .multi_transformer import MultiTransformer

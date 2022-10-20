@@ -127,7 +127,7 @@ class CSVDataset(Dataset):
     def __getitem__(self, idx):
         img = self.load_image(idx)
         annot = self.load_annotations(idx)
-        verb = self.image_names[idx].split('/')[2]
+        verb = self.image_names[idx].split('/')[-1]
         verb = verb.split('_')[0]
         caption = self.captions[idx]
 
