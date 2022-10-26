@@ -19,9 +19,6 @@ from engine import train_one_epoch, evaluate_swig
 from dual_enc_engine import train_one_epoch_dual_enc, evaluate_flicker
 from torch.utils.tensorboard import SummaryWriter
 
-from models.frame_semantic_transformer import FrameSemanticTransformer
-from models.dual_encoder_gsr.t5_encoder import T5Encoder
-
 class Namespace:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)

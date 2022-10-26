@@ -16,8 +16,6 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from transformers import T5Tokenizer
-
 from util import box_ops
 from util.misc import (NestedTensor, nested_tensor_from_tensor_list,
                        accuracy, accuracy_swig, accuracy_swig_bbox)
@@ -158,7 +156,7 @@ class DualEncGSR(nn.Module):
 
 def build(args):
     backbone = build_backbone(args)
-    transformer = build_dual_enc_transformer(args)
+    transformer, tokenizer = build_dual_enc_transformer(args)
 
     model = DualEncGSR(
                 backbone,
@@ -168,12 +166,6 @@ def build(args):
                 num_noun_classes=args.num_noun_classes,
                 vidx_ridx=args.vidx_ridx
             )
-
-    tokenizer = T5Tokenizer.from_pretrained(
-        f"chanind/frame-semantic-transformer-base",
-        revision="v0.1.0",
-        model_max_length=args.max_sentence_len,
-    )
 
     criterion = None
 

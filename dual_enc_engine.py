@@ -41,10 +41,10 @@ def train_one_epoch_dual_enc(model: torch.nn.Module, tokenizer:T5Tokenizer, crit
         for c in captions:
             tasks.append(FrameClassificationTask(text=c[0], trigger_loc=c[1]))
 
-        captions = [task.get_input() for task in tasks]
+        text_captions = [task.get_input() for task in tasks]
 
         inputs = tokenizer(
-            captions,
+            text_captions,
             padding="max_length",
             truncation=True,
             return_token_type_ids=True,

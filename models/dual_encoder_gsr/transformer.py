@@ -9,6 +9,7 @@ import torch
 import torch.nn.functional as F
 from typing import Optional, List
 from torch import nn, Tensor
+from transformers import T5Tokenizer
 
 from models.transformer import TransformerEncoder, TransformerDecoder, TransformerEncoderLayer, TransformerDecoderLayer
 from .t5_encoder import T5Encoder
@@ -69,10 +70,10 @@ class Transformer(nn.Module):
         zero_mask = torch.zeros((bs, 1), dtype=torch.bool, device=device)
         mem_mask = torch.cat([zero_mask, mask], dim=1)
 
-        text_memory, attn_mask = self.text_encoder(input_ids=text_src, attention_mask=text_mask)
-        text_memory = self.text_input_proj(text_memory)
-        text_memory = torch.transpose(text_memory, 0, 1)
-        text_mask = text_mask.bool()
+        text_memory = self.text_encoder(input_ids=text_src, attention_mask=text_mask)
+        # text_memory = self.text_input_proj(text_memory)
+        # text_memory = torch.transpose(text_memory, 0, 1)
+        # text_mask = text_mask.bool()
 
         combined_mask = torch.cat((text_mask, mask), dim=1)
 
@@ -82,7 +83,7 @@ class Transformer(nn.Module):
         vhs = vhs.view(bs, -1)
         verb_pred = self.verb_classifier(vhs).view(bs, self.num_verb_classes)
 
-        memory_combined = torch.cat((text_memory, memory), dim=0)
+        # memory_combined = torch.cat((text_memory, memory), dim=0)
 
         # Transformer Decoder
         ## At training time, we assume that the ground-truth verb is given.
@@ -109,8 +110,8 @@ class Transformer(nn.Module):
                                    axis=-1)
         vr_query_embed = vr_query_embed.unsqueeze(1).repeat(1, bs, 1)
         role_tgt = torch.zeros_like(vr_query_embed)
-        rhs = self.decoder(role_tgt, memory_combined, memory_key_padding_mask=combined_mask,
-                           pos=combined_pos_embed, query_pos=vr_query_embed)
+        rhs = self.decoder(role_tgt, memory, memory_key_padding_mask=mask,
+                           pos=pos_embed, query_pos=vr_query_embed)
         rhs = rhs.transpose(1, 2)
 
         return verb_pred, rhs, num_roles
@@ -124,12 +125,19 @@ def build_dual_enc_transformer(args):
         max_batch_size=args.batch_size,
         max_length=args.max_sentence_len
     )
-    t5_encoder.setup()
 
-    return Transformer(t5_encoder,
+    tokenizer = T5Tokenizer.from_pretrained(
+        t5_encoder.model_path,
+        revision=t5_encoder.model_revision,
+        model_max_length=args.max_sentence_len,
+    )
+
+    transformer = Transformer(t5_encoder,
                        d_model=args.hidden_dim,
                        dropout=args.dropout,
                        nhead=args.nheads,
                        dim_feedforward=args.dim_feedforward,
                        num_encoder_layers=args.enc_layers,
                        num_decoder_layers=args.dec_layers)
+
+    return transformer, tokenizer
