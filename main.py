@@ -274,7 +274,7 @@ if __name__ == '__main__':
         epochs=40,
         start_epoch=start_epoch, # epochs should start from 0 and continue until less then epochs
         resume=resume,
-        num_workers=4,
+        num_workers=num_workers,
         saved_model=saved_model_path,
         world_size=1,
         dist_url='env://',
