@@ -17,12 +17,12 @@ from .t5_encoder import T5Encoder
 class Transformer(nn.Module):
 
     def __init__(self, text_encoder, d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6,
-                 dim_feedforward=2048, dropout=0.15, activation="relu"):
+                 dim_feedforward=2048, dropout=0.15, activation="relu", n_verbs=504):
         super().__init__()
 
         self.d_model = d_model
         self.nhead = nhead
-        self.num_verb_classes = 504
+        self.num_verb_classes = n_verbs
 
         self.text_encoder = text_encoder
         self.text_encoder.requires_grad_(False)
@@ -62,7 +62,7 @@ class Transformer(nn.Module):
         pos_embed = pos_embed.flatten(2).permute(2, 0, 1)
         text_pos_embed = torch.transpose(text_pos_embed, 0, 1)
         device = enc_verb_query_embed.device
-        combined_pos_embed = torch.cat((text_pos_embed, pos_embed), dim=0)
+        combined_pos_embed = torch.cat([text_pos_embed, pos_embed], dim=0)
 
         # Transformer Encoder (w/ verb classifier)
         enc_verb_query_embed = enc_verb_query_embed.unsqueeze(1).repeat(1, bs, 1)
@@ -75,7 +75,7 @@ class Transformer(nn.Module):
         text_memory = torch.transpose(text_memory, 0, 1)
         text_mask = text_mask.bool()
 
-        combined_mask = torch.cat((text_mask, mask), dim=1)
+        combined_mask = torch.cat([text_mask, mask], dim=1)
 
         verb_with_src = torch.cat([enc_verb_query_embed, src], dim=0)
         memory = self.encoder(verb_with_src, src_key_padding_mask=mem_mask, pos=pos_embed)
@@ -83,7 +83,7 @@ class Transformer(nn.Module):
         vhs = vhs.view(bs, -1)
         verb_pred = self.verb_classifier(vhs).view(bs, self.num_verb_classes)
 
-        memory_combined = torch.cat((text_memory, memory), dim=0)
+        memory_combined = torch.cat([text_memory, memory], dim=0)
 
         # Transformer Decoder
         ## At training time, we assume that the ground-truth verb is given.
@@ -138,6 +138,7 @@ def build_dual_enc_transformer(args):
                        nhead=args.nheads,
                        dim_feedforward=args.dim_feedforward,
                        num_encoder_layers=args.enc_layers,
-                       num_decoder_layers=args.dec_layers)
+                       num_decoder_layers=args.dec_layers,
+                       n_verbs=len(args.idx_to_verb))
 
     return transformer, tokenizer

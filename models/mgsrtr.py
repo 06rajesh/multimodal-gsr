@@ -163,7 +163,8 @@ def build(args):
                                    nhead=args.nheads,
                                    dim_feedforward=args.dim_feedforward,
                                    num_encoder_layers=args.enc_layers,
-                                   num_decoder_layers=args.dec_layers)
+                                   num_decoder_layers=args.dec_layers,
+                                   n_verbs=len(args.idx_to_verb))
 
     bertmodelname = "bert-base-uncased"
     # bertmodel = BertModel.from_pretrained(bertmodelname)

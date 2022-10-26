@@ -27,7 +27,7 @@ from models.gsrtr import SWiGCriterion
 class DualEncGSR(nn.Module):
     """ GSRTR model for Grounded Situation Recognition"""
 
-    def __init__(self, backbone, transformer, max_sentence_length, batch_size, num_noun_classes, vidx_ridx):
+    def __init__(self, backbone, transformer, max_sentence_length, batch_size, num_noun_classes, vidx_ridx, num_roles=190, num_verbs=504):
         """ Initialize the model.
         Parameters:
             - backbone: torch module of the backbone to be used. See backbone.py
@@ -40,8 +40,8 @@ class DualEncGSR(nn.Module):
         self.transformer = transformer
         self.num_noun_classes = num_noun_classes
         self.vidx_ridx = vidx_ridx
-        self.num_role_queries = 190
-        self.num_verb_queries = 504
+        self.num_role_queries = num_roles
+        self.num_verb_queries = num_verbs
 
         # hidden dimension for queries and image features
         hidden_dim = transformer.d_model
@@ -164,7 +164,9 @@ def build(args):
                 max_sentence_length=args.max_sentence_len,
                 batch_size=args.batch_size,
                 num_noun_classes=args.num_noun_classes,
-                vidx_ridx=args.vidx_ridx
+                vidx_ridx=args.vidx_ridx,
+                num_roles=len(args.idx_to_role),
+                num_verbs=len(args.idx_to_verb),
             )
 
     criterion = None

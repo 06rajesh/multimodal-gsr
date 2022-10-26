@@ -10,12 +10,12 @@ from .transformer import  TransformerEncoder, TransformerDecoder, TransformerEnc
 class MultiTransformer(nn.Module):
 
     def __init__(self, d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6,
-                 dim_feedforward=2048, dropout=0.15, activation="relu"):
+                 dim_feedforward=2048, dropout=0.15, activation="relu", n_verbs=504):
         super().__init__()
 
         self.d_model = d_model
         self.nhead = nhead
-        self.num_verb_classes = 504
+        self.num_verb_classes = n_verbs
 
         # encoder
         encoder_layer = TransformerEncoderLayer(d_model, nhead, dim_feedforward,
