@@ -12,3 +12,4 @@ nltk
 transformers
 python-dotenv
 tensorboard
+frame-semantic-transformer

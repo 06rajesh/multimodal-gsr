@@ -118,7 +118,7 @@ class Transformer(nn.Module):
 
 def build_dual_enc_transformer(args):
 
-    t5_encoder = T5Encoder(model_name='base', max_length=args.max_sentence_len)
+    t5_encoder = T5Encoder(model_name='base', device=args.device, max_length=args.max_sentence_len)
     t5_encoder.setup()
 
     return Transformer(t5_encoder,

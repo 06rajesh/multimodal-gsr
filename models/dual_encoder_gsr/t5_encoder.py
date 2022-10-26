@@ -45,19 +45,14 @@ class T5Encoder(nn.Module):
         self._model = T5ForConditionalGeneration.from_pretrained(
             self.model_path, revision=self.model_revision
         ).to(self.device)
-        # self._tokenizer = T5Tokenizer.from_pretrained(
-        #     self.model_path,
-        #     revision=self.model_revision,
-        #     model_max_length=self.max_length,
-        # )
 
         ensure_framenet_downloaded()
 
-    # @property
-    # def model(self) -> T5ForConditionalGeneration:
-    #     if not self._model:
-    #         self.setup()
-    #     return cast(T5ForConditionalGeneration, self._model)
+    @property
+    def model(self) -> T5ForConditionalGeneration:
+        if not self._model:
+            self.setup()
+        return cast(T5ForConditionalGeneration, self._model)
 
     def forward(
             self,
