@@ -213,6 +213,7 @@ if __name__ == '__main__':
     dataset_path = os.getenv('DATASET_PATH', './flicker30k')
     resume_str = os.getenv('RESUME', "False")
     start_epoch = int(os.getenv("START_EPOCH", "0"))
+    num_workers = int(os.getenv("NUM_WORKERS", "4"))
     version = os.getenv("VERSION", "V1")
     model_type_str=os.getenv("MODEL_TYPE", "mgsrtr")
 
