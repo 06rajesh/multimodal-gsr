@@ -64,8 +64,6 @@ def train_one_epoch_dual_enc(model: torch.nn.Module, tokenizer:T5Tokenizer, crit
         weight_dict = criterion.weight_dict
         losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
 
-        exit()
-
         # reduce losses over all GPUs for logging purposes
         # scaled with different loss coefficients
         loss_dict_reduced = utils.reduce_dict(loss_dict)
@@ -138,11 +136,6 @@ def evaluate_flicker(model, tokenizer:T5Tokenizer, criterion, data_loader, devic
             add_special_tokens=True,
             return_tensors="pt",
         )
-
-        # mask = inputs['attention_mask'].bool()
-        # inputs.update({
-        #     "mask": mask
-        # })
 
         # data & target
         samples = samples.to(device)
