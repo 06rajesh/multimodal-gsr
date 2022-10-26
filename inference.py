@@ -20,6 +20,7 @@ import skimage
 import skimage.transform
 import nltk
 import re
+from enum import Enum
 from util import box_ops
 from PIL import Image
 from torch.utils.data import DataLoader
@@ -31,6 +32,10 @@ from nltk.corpus import wordnet as wn
 class Namespace:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+
+class ModelType(Enum):
+    MGSRTR:str = 'mgsrtr'
+    DuelEncGSR:str = 'duel_enc_gsr'
 
 def noun2synset(noun):
     return wn.synset_from_pos_and_offset(noun[0], int(noun[1:])).name() if re.match(r'n[0-9]*',
@@ -238,6 +243,11 @@ def main(args):
 
 
 if __name__ == '__main__':
+
+    dataset = 'flicker30k'
+    flicker_path = './flicker30k'
+    swig_path = './SWiG'
+
     args = Namespace(
         lr=0.0001,
         lr_backbone=1e-5,
@@ -247,7 +257,7 @@ if __name__ == '__main__':
         batch_size=16,
         backbone='resnet50',
         position_embedding='learned',
-        max_sentence_len=30,
+        max_sentence_len=100,
         enc_layers=6,
         dec_layers=6,
         dim_feedforward=2048,
@@ -259,8 +269,10 @@ if __name__ == '__main__':
         bbox_loss_coef=5,
         bbox_conf_loss_coef=5,
         giou_loss_coef=5,
-        dataset_file='swig',
-        swig_path='SWiG',
+        # dataset_file='swig',
+        dataset_file=dataset,
+        swig_path=swig_path,
+        flicker_path=flicker_path,
         dev=False,
         test=True,
         inference=True,
@@ -270,11 +282,12 @@ if __name__ == '__main__':
         epochs=40,
         start_epoch=0,  # epochs should start from 0 and continue until less then epochs
         num_workers=4,
-        saved_model='pretrained/checkpoint.pth',
+        saved_model='flicker30k/pretrained/v2/checkpoint.pth',
         world_size=1,
         dist_url='env://',
-        image_path='./inference/standing.jpg',
-        caption='Two young guys are standing on a yard.'
+        model_type=ModelType.MGSRTR,
+        image_path='./inference/talking-skating.jpg',
+        caption='A girl is skating on the street while talking with a mobile on her ear.'
     )
 
     nltk.download('wordnet')

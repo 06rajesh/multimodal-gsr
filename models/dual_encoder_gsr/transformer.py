@@ -71,9 +71,9 @@ class Transformer(nn.Module):
         mem_mask = torch.cat([zero_mask, mask], dim=1)
 
         text_memory = self.text_encoder(input_ids=text_src, attention_mask=text_mask)
-        # text_memory = self.text_input_proj(text_memory)
-        # text_memory = torch.transpose(text_memory, 0, 1)
-        # text_mask = text_mask.bool()
+        text_memory = self.text_input_proj(text_memory)
+        text_memory = torch.transpose(text_memory, 0, 1)
+        text_mask = text_mask.bool()
 
         combined_mask = torch.cat((text_mask, mask), dim=1)
 
@@ -83,7 +83,7 @@ class Transformer(nn.Module):
         vhs = vhs.view(bs, -1)
         verb_pred = self.verb_classifier(vhs).view(bs, self.num_verb_classes)
 
-        # memory_combined = torch.cat((text_memory, memory), dim=0)
+        memory_combined = torch.cat((text_memory, memory), dim=0)
 
         # Transformer Decoder
         ## At training time, we assume that the ground-truth verb is given.
@@ -110,8 +110,8 @@ class Transformer(nn.Module):
                                    axis=-1)
         vr_query_embed = vr_query_embed.unsqueeze(1).repeat(1, bs, 1)
         role_tgt = torch.zeros_like(vr_query_embed)
-        rhs = self.decoder(role_tgt, memory, memory_key_padding_mask=mask,
-                           pos=pos_embed, query_pos=vr_query_embed)
+        rhs = self.decoder(role_tgt, memory_combined, memory_key_padding_mask=combined_mask,
+                           pos=combined_pos_embed, query_pos=vr_query_embed)
         rhs = rhs.transpose(1, 2)
 
         return verb_pred, rhs, num_roles

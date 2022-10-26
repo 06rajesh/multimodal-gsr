@@ -1,4 +1,5 @@
-verb: phoning 
-role: agent, noun: woman.n.01 
-role: tool, noun: telephone.n.01 
-role: place, noun: sidewalk.n.01 
+verb: talking 
+role: interlocutors, noun: girl.n.01 
+role: interlocutor_1, noun: girl.n.01 
+role: interlocutor_2, noun: 'blank' 
+role: place, noun: 'blank' 

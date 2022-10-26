@@ -1,5 +1,0 @@
-verb: falling 
-role: agent, noun: person.n.01 
-role: source, noun: horse.n.01 
-role: goal, noun: land.n.04 
-role: place, noun: outdoors.n.01 
