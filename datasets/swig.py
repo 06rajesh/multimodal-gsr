@@ -34,7 +34,7 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 class CSVDataset(Dataset):
     """CSV dataset."""
 
-    def __init__(self, img_folder, ann_file, class_list, verb_path, role_path, verb_info, is_training, transform=None, dataset='swig'):
+    def __init__(self, img_folder, ann_file, class_list, verb_path, role_path, verb_info, is_training, transform=None, dataset='swig', add_verb_loc=False):
         """
         Parameters:
             - ann_file : CSV file with annotations
@@ -49,6 +49,7 @@ class CSVDataset(Dataset):
         self.transform = transform
         self.is_training = is_training
         self.dataset = dataset
+        self.add_verb_loc = add_verb_loc
         self.color_change = transforms.Compose([transforms.ColorJitter(hue=0.1, saturation=0.1, brightness=0.1), transforms.RandomGrayscale(p=0.3)])
 
         with open(self.class_list, 'r') as file:
@@ -231,7 +232,12 @@ class CSVDataset(Dataset):
     def _read_captions(self, json):
         captions = []
         for image in json:
-            captions.append(json[image]['caption'])
+            if self.add_verb_loc:
+                caption = json[image]['caption']
+                verb_loc = json[image]['verb_loc']
+                captions.append((caption, verb_loc))
+            else:
+                captions.append(json[image]['caption'])
 
         return captions
 
@@ -477,6 +483,10 @@ def build_flicker(image_set, args):
     }
     tfs = TRANSFORMS[image_set]
 
+    add_verb_loc = False
+    if args.model_type.value == 'duel_enc_gsr':
+        add_verb_loc = True
+
     dataset = CSVDataset(img_folder=str(img_folder),
                          ann_file=ann_file,
                          class_list=classes_file,
@@ -485,7 +495,8 @@ def build_flicker(image_set, args):
                          verb_info=verb_orders,
                          is_training=is_training,
                          transform=tfs,
-                         dataset='flicker30k')
+                         dataset='flicker30k',
+                         add_verb_loc=add_verb_loc)
 
     if is_training:
         args.SWiG_json_train = dataset.SWiG_json

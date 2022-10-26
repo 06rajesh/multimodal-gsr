@@ -5,6 +5,7 @@ import json
 import datetime
 import time
 import os
+from enum import Enum
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -13,12 +14,21 @@ from torch.utils.data import DataLoader, DistributedSampler
 from datasets import build_dataset
 import util.misc as utils
 from models import build_model
+from models.dual_encoder_gsr import build_dual_enc_model
 from engine import train_one_epoch, evaluate_swig
+from dual_enc_engine import train_one_epoch_dual_enc, evaluate_flicker
 from torch.utils.tensorboard import SummaryWriter
+
+from models.frame_semantic_transformer import FrameSemanticTransformer
+from models.dual_encoder_gsr.t5_encoder import T5Encoder
 
 class Namespace:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+
+class ModelType(Enum):
+    MGSRTR:str = 'mgsrtr'
+    DuelEncGSR:str = 'duel_enc_gsr'
 
 def main(args:Namespace):
     utils.init_distributed_mode(args)
@@ -28,7 +38,7 @@ def main(args:Namespace):
 
     output_dir = Path(args.output_dir)
 
-    summary_dir = output_dir / 'summary' / 'mgsrtr'
+    summary_dir = output_dir / 'summary' / str(args.model_type.value)
     writer = SummaryWriter(str(summary_dir))
 
     # fix the seed for reproducibility
@@ -52,7 +62,11 @@ def main(args:Namespace):
         dataset_test = build_dataset(image_set='test', args=args)
 
     # build model
-    model, tokenizer, criterion = build_model(args)
+    if args.model_type == ModelType.DuelEncGSR:
+        model, tokenizer, criterion = build_dual_enc_model(args)
+    else:
+        model, tokenizer, criterion = build_model(args)
+
     model.to(device)
     model_without_ddp = model
 
@@ -124,7 +138,10 @@ def main(args:Namespace):
         elif args.test:
             data_loader = data_loader_test
 
-        test_stats = evaluate_swig(model, tokenizer, criterion, data_loader, device, args.output_dir)
+        if args.model_type == ModelType.DuelEncGSR:
+            test_stats = evaluate_flicker(model, criterion, data_loader, device, args.output_dir)
+        else:
+            test_stats = evaluate_swig(model, tokenizer, criterion, data_loader, device, args.output_dir)
         log_stats = {**{f'test_{k}': v for k, v in test_stats.items()}}
 
         # write log
@@ -143,12 +160,19 @@ def main(args:Namespace):
         # train one epoch
         if args.distributed:
             sampler_train.set_epoch(epoch)
-        train_stats = train_one_epoch(model, tokenizer, criterion, data_loader_train, optimizer,
+
+        if args.model_type == ModelType.DuelEncGSR:
+            train_stats = train_one_epoch_dual_enc(model, tokenizer, criterion, data_loader_train, optimizer, device, epoch, args.clip_max_norm, writer=writer)
+        else:
+            train_stats = train_one_epoch(model, tokenizer, criterion, data_loader_train, optimizer,
                                       device, epoch, args.clip_max_norm, writer=writer)
         lr_scheduler.step()
 
         # evaluate
-        test_stats = evaluate_swig(model, tokenizer, criterion, data_loader_val, device, args.output_dir)
+        if args.model_type == ModelType.DuelEncGSR:
+            test_stats = evaluate_flicker(model, tokenizer, criterion, data_loader_val, device, args.output_dir)
+        else:
+            test_stats = evaluate_swig(model, tokenizer, criterion, data_loader_val, device, args.output_dir)
 
         # log & output
         # **{f'test_{k}': v for k, v in test_stats.items()},
@@ -193,10 +217,15 @@ if __name__ == '__main__':
     resume_str = os.getenv('RESUME', "False")
     start_epoch = int(os.getenv("START_EPOCH", "0"))
     version = os.getenv("VERSION", "V1")
+    model_type_str=os.getenv("MODEL_TYPE", "mgsrtr")
 
     resume = False
     if resume_str.lower() == "true":
         resume = True
+
+    model_type = ModelType.MGSRTR
+    if model_type_str.lower() == ModelType.DuelEncGSR.value:
+        model_type = ModelType.DuelEncGSR
 
     root = Path(dataset_path)
     output_dir = root / 'pretrained' / version
@@ -250,7 +279,8 @@ if __name__ == '__main__':
         num_workers=4,
         saved_model=saved_model_path,
         world_size=1,
-        dist_url='env://'
+        dist_url='env://',
+        model_type=model_type,
     )
 
     # attrs = vars(args)

@@ -63,7 +63,6 @@ class Transformer(nn.Module):
         mask = mask.flatten(1)
         zero_mask = torch.zeros((bs, 1), dtype=torch.bool, device=device)
         mem_mask = torch.cat([zero_mask, mask], dim=1)
-        print(mem_mask.shape)
 
         verb_with_src = torch.cat([enc_verb_query_embed, src], dim=0)
         memory = self.encoder(verb_with_src, src_key_padding_mask=mem_mask, pos=pos_embed)
