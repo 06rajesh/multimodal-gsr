@@ -19,10 +19,20 @@ from tqdm import tqdm
 
 from transformers import BertTokenizer
 from torch.utils.tensorboard import SummaryWriter
+from frame_semantic_transformer.data.tasks import FrameClassificationTask
+from models.types import ModelType
+
+def get_captions_from_tuple(captions:tuple) -> list[str]:
+    tasks = []
+    for c in captions:
+        tasks.append(FrameClassificationTask(text=c[0], trigger_loc=c[1]))
+
+    return [task.get_input() for task in tasks]
 
 def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
-                    device: torch.device, epoch: int, max_norm: float = 0, writer:SummaryWriter = None):
+                    device: torch.device, epoch: int, max_norm: float = 0,
+                    model_type:ModelType = ModelType.MGSRTR, writer:SummaryWriter = None):
     model.train()
     criterion.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -34,9 +44,12 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
     train_iterator = tqdm(data_loader, desc=loader_desc.format(epoch, 0.0, 0.0, 0.0, 0.0, 0.0))
 
     for idx, (samples, captions, targets) in enumerate(train_iterator, 1):
+        text_inputs = captions
+        if model_type == ModelType.DuelEncGSR or model_type == ModelType.T5MGSRTR:
+            text_inputs = get_captions_from_tuple(captions)
 
         inputs = tokenizer(
-            captions,
+            text_inputs,
             padding="max_length",
             truncation=True,
             return_token_type_ids=True,
@@ -109,7 +122,7 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
 
 
 @torch.no_grad()
-def evaluate_swig(model, tokenizer, criterion, data_loader, device, output_dir):
+def evaluate_swig(model, tokenizer, criterion, data_loader, device, model_type:ModelType = ModelType.MGSRTR):
     model.eval()
     criterion.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -119,8 +132,12 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device, output_dir):
     test_iterator = tqdm(data_loader, desc=loader_desc.format(0.0, 0.0, 0.0, 0.0))
 
     for idx, (samples, captions, targets) in enumerate(test_iterator, 1):
+        text_inputs = captions
+        if model_type == ModelType.DuelEncGSR or model_type == ModelType.T5MGSRTR:
+            text_inputs = get_captions_from_tuple(captions)
+
         inputs = tokenizer(
-            captions,
+            text_inputs,
             padding="max_length",
             truncation=True,
             return_token_type_ids=True,

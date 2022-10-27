@@ -484,7 +484,7 @@ def build_flicker(image_set, args):
     tfs = TRANSFORMS[image_set]
 
     add_verb_loc = False
-    if args.model_type.value == 'duel_enc_gsr':
+    if args.model_type.value == 'duel_enc_gsr' or args.model_type.value == 't5_mgsrtr':
         add_verb_loc = True
 
     dataset = CSVDataset(img_folder=str(img_folder),

@@ -18,10 +18,12 @@ from util.misc import (NestedTensor, nested_tensor_from_tensor_list,
 
 from transformers import BertTokenizer, VisualBertForVisualReasoning, VisualBertConfig, BertModel
 
-from .visual_bert import VisualBertEmbeddings
+from .visual_bert import VisualBertEmbeddings, VisualT5Embeddings
 from .multi_transformer import MultiTransformer
 from .backbone import Backbone
 from .gsrtr import SWiGCriterion
+from .types import ModelType
+from transformers import T5Tokenizer
 
 class MGSRTR(nn.Module):
     """ GSRTR model for Grounded Situation Recognition"""
@@ -167,21 +169,35 @@ def build(args):
                                    n_verbs=len(args.idx_to_verb))
 
     bertmodelname = "bert-base-uncased"
+    t5modelname = "base"
     # bertmodel = BertModel.from_pretrained(bertmodelname)
     # embedding_matrix = bertmodel.embeddings.word_embeddings.weight
 
-    tokenizer = BertTokenizer.from_pretrained(bertmodelname, model_max_length=args.max_sentence_len)
+    # tokenizer = BertTokenizer.from_pretrained(bertmodelname, model_max_length=args.max_sentence_len)
 
     vbconfig=VisualBertConfig()
     vbconfig.visual_embedding_dim = args.dim_feedforward
     vbconfig.word_embedding_dim = vbconfig.hidden_size # embedding_matrix.shape[1]
     vbconfig.hidden_size = args.hidden_dim
     vbconfig.batch_size = args.batch_size
+    vbconfig.device = args.device
 
-    vbertembedding = VisualBertEmbeddings(vbconfig, bert_model_name=bertmodelname)
+    if args.model_type == ModelType.T5MGSRTR or args.model_type == ModelType.DuelEncGSR:
+        embedding_layer = VisualT5Embeddings(vbconfig, t5_model_name=t5modelname)
+        t5_model = embedding_layer.text_encoder
+        tokenizer = T5Tokenizer.from_pretrained(
+            t5_model.model_path,
+            revision=t5_model.model_revision,
+            model_max_length=args.max_sentence_len,
+        )
+    else:
+        embedding_layer = VisualBertEmbeddings(vbconfig, bert_model_name=bertmodelname)
+        tokenizer = BertTokenizer.from_pretrained(bertmodelname, model_max_length=args.max_sentence_len)
+
+
 
     model = MGSRTR(backbone,
-                   vbertembedding,
+                   embedding_layer,
                    transformer,
                    num_noun_classes=args.num_noun_classes,
                    vidx_ridx=args.vidx_ridx,

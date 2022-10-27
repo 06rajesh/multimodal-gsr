@@ -5,7 +5,6 @@ import json
 import datetime
 import time
 import os
-from enum import Enum
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -18,14 +17,7 @@ from models.dual_encoder_gsr import build_dual_enc_model
 from engine import train_one_epoch, evaluate_swig
 from dual_enc_engine import train_one_epoch_dual_enc, evaluate_flicker
 from torch.utils.tensorboard import SummaryWriter
-
-class Namespace:
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-
-class ModelType(Enum):
-    MGSRTR:str = 'mgsrtr'
-    DuelEncGSR:str = 'duel_enc_gsr'
+from models.types import Namespace, ModelType
 
 def main(args:Namespace):
     utils.init_distributed_mode(args)
@@ -162,14 +154,14 @@ def main(args:Namespace):
             train_stats = train_one_epoch_dual_enc(model, tokenizer, criterion, data_loader_train, optimizer, device, epoch, args.clip_max_norm, writer=writer)
         else:
             train_stats = train_one_epoch(model, tokenizer, criterion, data_loader_train, optimizer,
-                                      device, epoch, args.clip_max_norm, writer=writer)
+                                      device, epoch, max_norm=args.clip_max_norm, model_type=args.model_type, writer=writer)
         lr_scheduler.step()
 
         # evaluate
         if args.model_type == ModelType.DuelEncGSR:
             test_stats = evaluate_flicker(model, tokenizer, criterion, data_loader_val, device)
         else:
-            test_stats = evaluate_swig(model, tokenizer, criterion, data_loader_val, device, args.output_dir)
+            test_stats = evaluate_swig(model, tokenizer, criterion, data_loader_val, device, model_type=args.model_type)
 
         # log & output
         # **{f'test_{k}': v for k, v in test_stats.items()},
@@ -224,6 +216,8 @@ if __name__ == '__main__':
     model_type = ModelType.MGSRTR
     if model_type_str.lower() == ModelType.DuelEncGSR.value:
         model_type = ModelType.DuelEncGSR
+    elif model_type_str.lower() == ModelType.T5MGSRTR.value:
+        model_type = ModelType.T5MGSRTR
 
     root = Path(dataset_path)
     output_dir = root / 'pretrained' / version
