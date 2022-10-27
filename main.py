@@ -167,7 +167,7 @@ def main(args:Namespace):
 
         # evaluate
         if args.model_type == ModelType.DuelEncGSR:
-            test_stats = evaluate_flicker(model, tokenizer, criterion, data_loader_val, device, args.output_dir)
+            test_stats = evaluate_flicker(model, tokenizer, criterion, data_loader_val, device)
         else:
             test_stats = evaluate_swig(model, tokenizer, criterion, data_loader_val, device, args.output_dir)
 
