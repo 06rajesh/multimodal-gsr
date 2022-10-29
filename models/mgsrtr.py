@@ -13,6 +13,8 @@ MGSRTR model and criterion classes.
 import torch
 import torch.nn.functional as F
 from torch import nn
+
+
 from util.misc import (NestedTensor, nested_tensor_from_tensor_list,
                        accuracy, accuracy_swig, accuracy_swig_bbox)
 
@@ -170,10 +172,6 @@ def build(args):
 
     bertmodelname = "bert-base-uncased"
     t5modelname = "base"
-    # bertmodel = BertModel.from_pretrained(bertmodelname)
-    # embedding_matrix = bertmodel.embeddings.word_embeddings.weight
-
-    # tokenizer = BertTokenizer.from_pretrained(bertmodelname, model_max_length=args.max_sentence_len)
 
     vbconfig=VisualBertConfig()
     vbconfig.visual_embedding_dim = args.dim_feedforward
@@ -182,7 +180,7 @@ def build(args):
     vbconfig.batch_size = args.batch_size
     vbconfig.device = args.device
 
-    if args.model_type == ModelType.T5MGSRTR or args.model_type == ModelType.DuelEncGSR:
+    if args.model_type == ModelType.T5_MGSRTR or args.model_type == ModelType.DuelEncGSR:
         embedding_layer = VisualT5Embeddings(vbconfig, t5_model_name=t5modelname)
         t5_model = embedding_layer.text_encoder
         tokenizer = T5Tokenizer.from_pretrained(
@@ -193,8 +191,6 @@ def build(args):
     else:
         embedding_layer = VisualBertEmbeddings(vbconfig, bert_model_name=bertmodelname)
         tokenizer = BertTokenizer.from_pretrained(bertmodelname, model_max_length=args.max_sentence_len)
-
-
 
     model = MGSRTR(backbone,
                    embedding_layer,

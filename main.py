@@ -18,8 +18,9 @@ from engine import train_one_epoch, evaluate_swig
 from dual_enc_engine import train_one_epoch_dual_enc, evaluate_flicker
 from torch.utils.tensorboard import SummaryWriter
 from models.types import Namespace, ModelType
+from models.mgsrtr_config import MGSRTRConfig
 
-def main(args:Namespace):
+def main(args:MGSRTRConfig):
     utils.init_distributed_mode(args)
     # print("git:\n  {}\n".format(utils.get_sha()))
 
@@ -145,6 +146,9 @@ def main(args:Namespace):
     start_time = time.time()
     max_test_mean_acc = 42
 
+    # save config before start training
+    args.save_config()
+
     for epoch in range(args.start_epoch, args.epochs):
         # train one epoch
         if args.distributed:
@@ -197,85 +201,7 @@ def main(args:Namespace):
     print('Training time {}'.format(total_time_str))
 
 
+
 if __name__ == '__main__':
-    load_dotenv()
-
-    dataset = os.getenv('DATASET', 'flicker30k')
-    device = os.getenv('DEVICE', 'cpu')
-    dataset_path = os.getenv('DATASET_PATH', './flicker30k')
-    resume_str = os.getenv('RESUME', "False")
-    start_epoch = int(os.getenv("START_EPOCH", "0"))
-    num_workers = int(os.getenv("NUM_WORKERS", "4"))
-    version = os.getenv("VERSION", "V1")
-    model_type_str=os.getenv("MODEL_TYPE", "mgsrtr")
-
-    resume = False
-    if resume_str.lower() == "true":
-        resume = True
-
-    model_type = ModelType.MGSRTR
-    if model_type_str.lower() == ModelType.DuelEncGSR.value:
-        model_type = ModelType.DuelEncGSR
-    elif model_type_str.lower() == ModelType.T5MGSRTR.value:
-        model_type = ModelType.T5MGSRTR
-
-    root = Path(dataset_path)
-    output_dir = root / 'pretrained' / version
-    saved_model_path = output_dir / 'checkpoint.pth'
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    flicker_path = './flicker30k'
-    swig_path = './SWiG'
-
-    if dataset == 'flicker30k':
-        flicker_path = dataset_path
-    elif dataset == 'swig':
-        swig_path = dataset_path
-
-    args = Namespace(
-        lr=0.0001,
-        lr_backbone=1e-5,
-        lr_drop=100,
-        weight_decay=0.0005,
-        clip_max_norm=0.1,
-        batch_size=16,
-        backbone='resnet50',
-        position_embedding='learned',
-        max_sentence_len=100,
-        enc_layers=6,
-        dec_layers=6,
-        dim_feedforward=2048,
-        hidden_dim=512,
-        dropout=0.25,
-        nheads=8,
-        noun_loss_coef=1,
-        verb_loss_coef=1,
-        bbox_loss_coef=5,
-        bbox_conf_loss_coef=5,
-        giou_loss_coef=5,
-        # dataset_file='swig',
-        dataset_file=dataset,
-        swig_path=swig_path,
-        flicker_path=flicker_path,
-        dev=False,
-        test=False,
-        inference=False,
-        output_dir=str(output_dir),
-        device=device,
-        seed=42,
-        epochs=40,
-        start_epoch=start_epoch, # epochs should start from 0 and continue until less then epochs
-        resume=resume,
-        num_workers=num_workers,
-        saved_model=saved_model_path,
-        world_size=1,
-        dist_url='env://',
-        model_type=model_type,
-    )
-
-    # attrs = vars(args)
-    # print(attrs)
-
+    args = MGSRTRConfig.from_env()
     main(args)
