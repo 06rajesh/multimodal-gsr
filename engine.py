@@ -11,6 +11,7 @@ Train and eval functions used in main.py
 """
 import math
 import os
+from typing import List
 import sys
 import torch
 import util.misc as utils
@@ -22,7 +23,7 @@ from torch.utils.tensorboard import SummaryWriter
 from frame_semantic_transformer.data.tasks import FrameClassificationTask
 from models.types import ModelType
 
-def get_captions_from_tuple(captions:tuple) -> list[str]:
+def get_captions_from_tuple(captions:tuple) -> List[str]:
     tasks = []
     for c in captions:
         tasks.append(FrameClassificationTask(text=c[0], trigger_loc=c[1]))
