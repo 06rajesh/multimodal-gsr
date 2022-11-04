@@ -1,0 +1,5 @@
+verb: talking 
+role: interlocutors, noun: girl.n.01 
+role: interlocutor_1, noun: girl.n.01 
+role: interlocutor_2, noun: 'blank' 
+role: place, noun: 'blank' 

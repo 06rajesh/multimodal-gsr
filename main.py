@@ -62,8 +62,7 @@ def main(args:MGSRTRConfig):
 
     if args.resume:
         model_path = Path(args.output_dir, args.saved_model)
-        checkpoint = torch.load(model_path, map_location=device)
-        model.load_state_dict(checkpoint['model'])
+        model.soft_load_from_pretrained(str(model_path), device=device)
 
     if args.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
@@ -203,5 +202,7 @@ def main(args:MGSRTRConfig):
 
 
 if __name__ == '__main__':
-    args = MGSRTRConfig.from_env()
+    # args = MGSRTRConfig.from_env()
+
+    args = MGSRTRConfig.from_config('./flicker30k/pretrained/local.v3/config.json')
     main(args)

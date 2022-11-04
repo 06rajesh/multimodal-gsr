@@ -1,0 +1,7 @@
+verb: skating 
+role: driver, noun: girl.n.01 
+role: vehicle, noun: 'blank' 
+role: path, noun: 'blank' 
+role: area, noun: street.n.01 
+role: goal, noun: 'blank' 
+role: place, noun: 'blank' 

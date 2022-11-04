@@ -20,15 +20,8 @@ from tqdm import tqdm
 
 from transformers import BertTokenizer
 from torch.utils.tensorboard import SummaryWriter
-from frame_semantic_transformer.data.tasks import FrameClassificationTask
 from models.types import ModelType
-
-def get_captions_from_tuple(captions:tuple) -> List[str]:
-    tasks = []
-    for c in captions:
-        tasks.append(FrameClassificationTask(text=c[0], trigger_loc=c[1]))
-
-    return [task.get_input() for task in tasks]
+from models.verb_extractor import get_captions_from_tuple
 
 def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,

@@ -213,8 +213,6 @@ class VisualT5Embeddings(nn.Module):
 
     @property
     def text_encoder(self):
-        """I'm the 'x' property."""
-        print("getter of x called")
         return self.t5_model
 
     def forward(

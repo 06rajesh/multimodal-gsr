@@ -12,6 +12,7 @@ class MGSRTRConfig:
     lr_drop: float
     weight_decay: float
     clip_max_norm: float
+    distributed: bool
     batch_size: int
     backbone: str
     position_embedding: str
@@ -54,7 +55,7 @@ class MGSRTRConfig:
                  start_epoch:int = 0,
                  num_workers:int = 4,
                  version:str = 'V1',
-                 model_type_str:str = ModelType.MGSRTR,
+                 model_type_str:str = ModelType.MGSRTR.value,
             ):
 
         if dataset.lower() == 'flicker30k':
@@ -78,6 +79,7 @@ class MGSRTRConfig:
         self.lr_drop = 100
         self.weight_decay = 0.0005
         self.clip_max_norm = 0.1
+        self.distributed = False
         self.batch_size = 16
         self.backbone = 'resnet50'
         self.position_embedding = 'learned'
@@ -149,12 +151,47 @@ class MGSRTRConfig:
             model_type_str=model_type_str
         )
 
+    @classmethod
+    def from_config(cls, config_path:str):
+
+        default_conf = cls.from_env()
+        env_keys = ['dataset', 'device', 'flicker_path', 'swig_path', 'start_epoch', 'num_workers', 'version', 'resume', 'model_type_str']
+
+        # Opening JSON file
+        f = open(config_path)
+
+        configs = json.load(f)
+
+        f.close()
+
+        for item in configs:
+            if item not in env_keys and hasattr(default_conf, item):
+                val = getattr(default_conf, item)
+                config_val = configs[item]
+                if isinstance(val, bool):
+                    config_val = True if configs[item].capitalize() == 'True' else False
+                elif isinstance(val, int):
+                    config_val = int(configs[item])
+                elif isinstance(val, float):
+                    config_val=  float(configs[item])
+
+                setattr(default_conf, item, config_val)
+
+        setattr(default_conf, 'model_type', ModelType.from_str(configs['model_type']))
+
+        return default_conf
+
     def save_config(self, path:str=None):
 
         config = {}
+        exclude = ['SWiG_json_train', 'idx_to_verb', 'idx_to_role', 'idx_to_class', 'vidx_ridx', 'SWiG_json_dev']
 
         for attr, value in self.__dict__.items():
-            config[attr] = str(value)
+            if attr not in exclude:
+                config[attr] = str(value)
+
+        config['num_verbs'] = str(len(self.__dict__['idx_to_verb']))
+        config['num_roles'] = str(len(self.__dict__['idx_to_role']))
 
         if not path:
             path = self.output_dir

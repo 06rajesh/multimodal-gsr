@@ -29,13 +29,12 @@ from models import build_model
 from pathlib import Path
 from nltk.corpus import wordnet as wn
 
-class Namespace:
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
+from frame_semantic_transformer.data.tasks import FrameClassificationTask
 
-class ModelType(Enum):
-    MGSRTR:str = 'mgsrtr'
-    DuelEncGSR:str = 'duel_enc_gsr'
+from models.mgsrtr_config import MGSRTRConfig
+from models.types import ModelType
+from models.verb_extractor import VerbExtractor
+
 
 def noun2synset(noun):
     return wn.synset_from_pos_and_offset(noun[0], int(noun[1:])).name() if re.match(r'n[0-9]*',
@@ -43,7 +42,7 @@ def noun2synset(noun):
 
 
 def visualize_bbox(image_path=None, num_roles=None, noun_labels=None, pred_bbox=None, pred_bbox_conf=None,
-                   output_dir=None):
+                   output_dir=None, sample_idx=0):
     image = cv2.imread(image_path)
     image_name = image_path.split('/')[-1].split('.')[0]
     h, w = image.shape[0], image.shape[1]
@@ -80,7 +79,7 @@ def visualize_bbox(image_path=None, num_roles=None, noun_labels=None, pred_bbox=
             cv2.putText(image, label, (p1[0], p1[1] + baseline), cv2.FONT_HERSHEY_SIMPLEX, 0.4, white_color, 1, 8)
 
             # save image
-    cv2.imwrite("{}/{}_result.jpg".format(output_dir, image_name), image)
+    cv2.imwrite("{}/{}_{}_result.jpg".format(output_dir, image_name, sample_idx), image)
 
     return
 
@@ -133,7 +132,7 @@ def process_image(image):
 
 
 def inference(model, device, tokenizer, caption, image_path=None, inference=False, idx_to_verb=None, idx_to_role=None,
-              vidx_ridx=None, idx_to_class=None, output_dir=None):
+              vidx_ridx=None, idx_to_class=None, output_dir=None, sample_idx=0):
     model.eval()
     image_name = image_path.split('/')[-1].split('.')[0]
 
@@ -145,6 +144,10 @@ def inference(model, device, tokenizer, caption, image_path=None, inference=Fals
     image, info = process_image(image)
     image = image.to(device)
     info = {k: v.to(device) if type(v) is not str else v for k, v in info.items()}
+
+    if args.model_type == ModelType.T5_MGSRTR:
+        task = FrameClassificationTask(caption[0], caption[1])
+        caption = task.get_input()
 
     inputs = tokenizer(
         caption,
@@ -200,7 +203,7 @@ def inference(model, device, tokenizer, caption, image_path=None, inference=Fals
     pb_xyxy /= scale
 
     # outputs
-    with open("{}/{}_result.txt".format(output_dir, image_name), "w") as f:
+    with open("{}/{}_{}_result.txt".format(output_dir, image_name, sample_idx), "w") as f:
         text_line = "verb: {} \n".format(verb_label)
         f.write(text_line)
         for i in range(num_roles):
@@ -208,15 +211,25 @@ def inference(model, device, tokenizer, caption, image_path=None, inference=Fals
             f.write(text_line)
         f.close()
     visualize_bbox(image_path=image_path, num_roles=num_roles, noun_labels=noun_labels, pred_bbox=pb_xyxy,
-                   pred_bbox_conf=pred_bbox_conf, output_dir=output_dir)
+                   pred_bbox_conf=pred_bbox_conf, output_dir=output_dir, sample_idx=sample_idx)
 
 
-def main(args):
+def main(args:MGSRTRConfig, img_path:Path, caption_str: str):
     # utils.init_distributed_mode(args)
     print("git:\n  {}\n".format(utils.get_sha()))
 
     if not args.inference:
         assert False, f"Please set inference to True"
+
+    ve = VerbExtractor()
+
+    captions = []
+    if args.model_type == ModelType.T5_MGSRTR:
+        verb_loc = ve.get_verb_idx(caption_str, False)
+        for loc in verb_loc:
+            captions.append((caption_str, loc))
+    else:
+        captions.append(caption_str)
 
     # fix the seed
     seed = args.seed + utils.get_rank()
@@ -235,62 +248,72 @@ def main(args):
     checkpoint = torch.load(args.saved_model, map_location='cpu')
     model.load_state_dict(checkpoint['model'])
 
-    inference(model, device, tokenizer, args.caption, image_path=args.image_path, inference=args.inference,
-              idx_to_verb=args.idx_to_verb, idx_to_role=args.idx_to_role, vidx_ridx=args.vidx_ridx,
-              idx_to_class=args.idx_to_class, output_dir=args.output_dir)
+    for idx, cap in enumerate(captions):
+        inference(model, device, tokenizer, cap, image_path=str(img_path), inference=args.inference,
+                  idx_to_verb=args.idx_to_verb, idx_to_role=args.idx_to_role, vidx_ridx=args.vidx_ridx,
+                  idx_to_class=args.idx_to_class, output_dir=args.output_dir, sample_idx=idx)
 
     return
 
 
 if __name__ == '__main__':
 
-    dataset = 'flicker30k'
-    flicker_path = './flicker30k'
-    swig_path = './SWiG'
+    # dataset = 'flicker30k'
+    # flicker_path = './flicker30k'
+    # swig_path = './SWiG'
+    #
+    # args = Namespace(
+    #     lr=0.0001,
+    #     lr_backbone=1e-5,
+    #     lr_drop=100,
+    #     weight_decay=0.0001,
+    #     clip_max_norm=0.1,
+    #     batch_size=16,
+    #     backbone='resnet50',
+    #     position_embedding='learned',
+    #     max_sentence_len=100,
+    #     enc_layers=6,
+    #     dec_layers=6,
+    #     dim_feedforward=2048,
+    #     hidden_dim=512,
+    #     dropout=0.15,
+    #     nheads=8,
+    #     noun_loss_coef=1,
+    #     verb_loss_coef=1,
+    #     bbox_loss_coef=5,
+    #     bbox_conf_loss_coef=5,
+    #     giou_loss_coef=5,
+    #     # dataset_file='swig',
+    #     dataset_file=dataset,
+    #     swig_path=swig_path,
+    #     flicker_path=flicker_path,
+    #     dev=False,
+    #     test=True,
+    #     inference=True,
+    #     output_dir='./inference',
+    #     device='cpu',
+    #     seed=42,
+    #     epochs=40,
+    #     start_epoch=0,  # epochs should start from 0 and continue until less then epochs
+    #     num_workers=4,
+    #     saved_model='flicker30k/pretrained/v2/checkpoint.pth',
+    #     world_size=1,
+    #     dist_url='env://',
+    #     model_type=ModelType.MGSRTR,
+    #     image_path='./inference/talking-skating.jpg',
+    #     caption='A girl is skating on the street while talking with a mobile on her ear.'
+    # )
 
-    args = Namespace(
-        lr=0.0001,
-        lr_backbone=1e-5,
-        lr_drop=100,
-        weight_decay=0.0001,
-        clip_max_norm=0.1,
-        batch_size=16,
-        backbone='resnet50',
-        position_embedding='learned',
-        max_sentence_len=100,
-        enc_layers=6,
-        dec_layers=6,
-        dim_feedforward=2048,
-        hidden_dim=512,
-        dropout=0.15,
-        nheads=8,
-        noun_loss_coef=1,
-        verb_loss_coef=1,
-        bbox_loss_coef=5,
-        bbox_conf_loss_coef=5,
-        giou_loss_coef=5,
-        # dataset_file='swig',
-        dataset_file=dataset,
-        swig_path=swig_path,
-        flicker_path=flicker_path,
-        dev=False,
-        test=True,
-        inference=True,
-        output_dir='./inference',
-        device='cpu',
-        seed=42,
-        epochs=40,
-        start_epoch=0,  # epochs should start from 0 and continue until less then epochs
-        num_workers=4,
-        saved_model='flicker30k/pretrained/v2/checkpoint.pth',
-        world_size=1,
-        dist_url='env://',
-        model_type=ModelType.MGSRTR,
-        image_path='./inference/talking-skating.jpg',
-        caption='A girl is skating on the street while talking with a mobile on her ear.'
-    )
+    args = MGSRTRConfig.from_env()
+
+    args.inference = True
+    args.test = True
+    args.output_dir = './inference'
+
+    image = Path('./inference/talking-skating.jpg')
+    caption = 'A girl is skating on the street while talking with a mobile on her ear.'
 
     nltk.download('wordnet')
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    main(args)
+    main(args, image, caption)

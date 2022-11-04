@@ -10,6 +10,7 @@
 """
 MGSRTR model and criterion classes.
 """
+import os
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -74,6 +75,31 @@ class MGSRTR(nn.Module):
                                                  nn.ReLU(),
                                                  nn.Dropout(0.2),
                                                  nn.Linear(hidden_dim * 2, 1))
+
+    def soft_load_from_pretrained(self, model_path:str, device:torch.device = 'cpu'):
+        if not os.path.isfile(model_path):
+            raise Warning('File not found. Model could not be loaded from pretrained')
+
+        checkpoint = torch.load(model_path, map_location=device)
+        loaded_model = checkpoint['model']
+        model_dict = self.state_dict()
+
+        missed_layer = []
+        for key in checkpoint['model'].keys():
+            if key in model_dict and model_dict[key].shape == loaded_model[key].shape:
+                pname = key
+                pval = loaded_model[key]
+                model_dict[pname] = pval.clone().to(model_dict[pname].device)
+            else:
+                missed_layer.append(key)
+
+        if len(missed_layer) > 0:
+            print('{} layers has mismatched shape. Could not be loaded. Following layers to be fine-tuned'.format(len(missed_layer)))
+            print(missed_layer)
+        else:
+            print('All layers loaded successfully')
+
+        self.load_state_dict(model_dict)
 
     def forward(self, samples, text_inputs, targets=None, inference=False):
         """ 
