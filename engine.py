@@ -127,7 +127,7 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device, model_type:M
 
     for idx, (samples, captions, targets) in enumerate(test_iterator, 1):
         text_inputs = captions
-        if model_type == ModelType.DuelEncGSR or model_type == ModelType.T5MGSRTR:
+        if model_type == ModelType.DuelEncGSR or model_type == ModelType.T5_MGSRTR:
             text_inputs = get_captions_from_tuple(captions)
 
         inputs = tokenizer(

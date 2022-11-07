@@ -202,7 +202,7 @@ def main(args:MGSRTRConfig):
 
 
 if __name__ == '__main__':
-    # args = MGSRTRConfig.from_env()
+    args = MGSRTRConfig.from_env()
 
-    args = MGSRTRConfig.from_config('./flicker30k/pretrained/local.v3/config.json')
+    # args = MGSRTRConfig.from_config('./flicker30k/pretrained/local.v3/config.json')
     main(args)
