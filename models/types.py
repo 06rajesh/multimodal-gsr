@@ -8,6 +8,7 @@ class ModelType(Enum):
     MGSRTR:str = 'mgsrtr'
     DuelEncGSR:str = 'duel_enc_gsr'
     T5_MGSRTR:str = 't5_mgsrtr'
+    GSRTR:str = 'gsrtr'
 
     def __str__(self):
         return str(self.value)
@@ -20,5 +21,7 @@ class ModelType(Enum):
             return ModelType.DuelEncGSR
         elif type_str.lower() == 't5_mgsrtr':
             return ModelType.T5_MGSRTR
+        elif type_str.lower() == 'gsrtr':
+            return ModelType.GSRTR
         else:
             raise NotImplementedError

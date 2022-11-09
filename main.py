@@ -54,6 +54,9 @@ def main(args:MGSRTRConfig):
     # build model
     if args.model_type == ModelType.DuelEncGSR:
         model, tokenizer, criterion = build_dual_enc_model(args)
+    elif args.model_type == ModelType.GSRTR:
+        model, criterion = build_model(args)
+        tokenizer = None
     else:
         model, tokenizer, criterion = build_model(args)
 

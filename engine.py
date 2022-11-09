@@ -42,29 +42,36 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
         if model_type == ModelType.DuelEncGSR or model_type == ModelType.T5_MGSRTR:
             text_inputs = get_captions_from_tuple(captions)
 
-        inputs = tokenizer(
-            text_inputs,
-            padding="max_length",
-            truncation=True,
-            return_token_type_ids=True,
-            return_attention_mask=True,
-            add_special_tokens=True,
-            return_tensors="pt",
-        )
+        inputs = dict()
 
-        mask = inputs['attention_mask'].bool()
+        if tokenizer:
+            inputs = tokenizer(
+                text_inputs,
+                padding="max_length",
+                truncation=True,
+                return_token_type_ids=True,
+                return_attention_mask=True,
+                add_special_tokens=True,
+                return_tensors="pt",
+            )
 
-        inputs.update({
-            "mask": mask
-        })
+            mask = inputs['attention_mask'].bool()
+
+            inputs.update({
+                "mask": mask
+            })
+
+            inputs = inputs.to(device)
 
         # data & target
         samples = samples.to(device)
-        inputs = inputs.to(device)
         targets = [{k: v.to(device) if type(v) is not str else v for k, v in t.items()} for t in targets]
 
         # model output & calculate loss
-        outputs = model(samples, inputs, targets)
+        if model_type == ModelType.GSRTR:
+            outputs = model(samples, targets)
+        else:
+            outputs = model(samples, inputs, targets)
         loss_dict = criterion(outputs, targets)
         weight_dict = criterion.weight_dict
         losses = sum(loss_dict[k] * weight_dict[k] for k in loss_dict.keys() if k in weight_dict)
@@ -102,11 +109,18 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
 
             if writer:
                 writer.add_scalar("training loss", items['loss'], epoch*n_batches+idx)
-                writer.add_scalars('accuracy', {
-                    "noun": items['noun_acc_all_top1_unscaled'],
-                    "verb": items['verb_acc_top1_unscaled'],
-                    "bounding box": items['bbox_acc_top5_unscaled'],
-                }, epoch*n_batches+idx)
+                writer.add_scalars('noun_accuracy', {
+                    "top-1": items['noun_acc_top1_unscaled'],
+                    "top-5": items['noun_acc_top5_unscaled'],
+                }, epoch * n_batches + idx)
+                writer.add_scalars('verb_accuracy', {
+                    "top-1": items['verb_acc_top1_unscaled'],
+                    "top-5": items['verb_acc_top5_unscaled'],
+                }, epoch * n_batches + idx)
+                writer.add_scalars('bounding_box_accuracy', {
+                    "top-1": items['bbox_acc_top1_unscaled'],
+                    "top-5": items['bbox_acc_top5_unscaled'],
+                }, epoch * n_batches + idx)
 
 
     # gather the stats from all processes
@@ -130,28 +144,34 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device, model_type:M
         if model_type == ModelType.DuelEncGSR or model_type == ModelType.T5_MGSRTR:
             text_inputs = get_captions_from_tuple(captions)
 
-        inputs = tokenizer(
-            text_inputs,
-            padding="max_length",
-            truncation=True,
-            return_token_type_ids=True,
-            return_attention_mask=True,
-            add_special_tokens=True,
-            return_tensors="pt",
-        )
+        inputs = dict()
+        if tokenizer:
+            inputs = tokenizer(
+                text_inputs,
+                padding="max_length",
+                truncation=True,
+                return_token_type_ids=True,
+                return_attention_mask=True,
+                add_special_tokens=True,
+                return_tensors="pt",
+            )
 
-        mask = inputs['attention_mask'].bool()
-        inputs.update({
-            "mask": mask
-        })
+            mask = inputs['attention_mask'].bool()
+            inputs.update({
+                "mask": mask
+            })
+
+            inputs = inputs.to(device)
 
         # data & target
         samples = samples.to(device)
-        inputs = inputs.to(device)
         targets = [{k: v.to(device) if type(v) is not str else v for k, v in t.items()} for t in targets]
 
         # model output & calculate loss
-        outputs = model(samples, inputs, targets)
+        if model_type == ModelType.GSRTR:
+            outputs = model(samples, targets)
+        else:
+            outputs = model(samples, inputs, targets)
         loss_dict = criterion(outputs, targets, eval=True)
         weight_dict = criterion.weight_dict
 
