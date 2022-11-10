@@ -56,6 +56,7 @@ class MGSRTRConfig:
                  num_workers:int = 4,
                  version:str = 'V1',
                  model_type_str:str = ModelType.MGSRTR.value,
+                 output_path:str = '',
             ):
 
         if dataset.lower() == 'flicker30k':
@@ -66,6 +67,8 @@ class MGSRTRConfig:
             raise ValueError("Invalid dataset type. Only supports `flicker30k` and `swig` dataset type")
 
         root = Path(dataset_path)
+        if output_path != '':
+            root = Path(output_path)
         output_dir = root / 'pretrained' / version
         saved_model_path = output_dir / 'checkpoint.pth'
 
@@ -126,6 +129,7 @@ class MGSRTRConfig:
         num_workers = int(os.getenv("NUM_WORKERS", "4"))
         version = os.getenv("VERSION", "V1")
         model_type_str = os.getenv("MODEL_TYPE", "mgsrtr")
+        output_path = os.getenv('OUTPUT_PATH', '')
 
         resume = False
         if resume_str.lower() == "true":
@@ -148,7 +152,8 @@ class MGSRTRConfig:
             num_workers=num_workers,
             version=version,
             resume=resume,
-            model_type_str=model_type_str
+            model_type_str=model_type_str,
+            output_path=output_path
         )
 
     @classmethod
