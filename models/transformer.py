@@ -19,12 +19,12 @@ from torch import nn, Tensor
 class Transformer(nn.Module):
 
     def __init__(self, d_model=512, nhead=8, num_encoder_layers=6, num_decoder_layers=6, 
-                dim_feedforward=2048, dropout=0.15, activation="relu"):
+                dim_feedforward=2048, dropout=0.15, activation="relu", n_verbs=504):
         super().__init__()
 
         self.d_model = d_model
         self.nhead = nhead
-        self.num_verb_classes = 504
+        self.num_verb_classes = n_verbs
 
         # encoder
         encoder_layer = TransformerEncoderLayer(d_model, nhead, dim_feedforward,
@@ -244,11 +244,12 @@ def _get_clones(module, N):
 
 def build_transformer(args):
     return Transformer(d_model=args.hidden_dim,
-                        dropout=args.dropout,
-                        nhead=args.nheads,
-                        dim_feedforward=args.dim_feedforward,
-                        num_encoder_layers=args.enc_layers,
-                        num_decoder_layers=args.dec_layers)
+                       dropout=args.dropout,
+                       nhead=args.nheads,
+                       dim_feedforward=args.dim_feedforward,
+                       num_encoder_layers=args.enc_layers,
+                       num_decoder_layers=args.dec_layers,
+                       n_verbs=len(args.idx_to_verb))
 
 
 def _get_activation_fn(activation):
