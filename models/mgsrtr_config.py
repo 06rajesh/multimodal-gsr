@@ -54,6 +54,7 @@ class MGSRTRConfig:
                  resume:bool = False,
                  start_epoch:int = 0,
                  num_workers:int = 4,
+                 batch_size:int = 16,
                  version:str = 'V1',
                  model_type_str:str = ModelType.MGSRTR.value,
                  output_path:str = '',
@@ -83,7 +84,7 @@ class MGSRTRConfig:
         self.weight_decay = 0.0005
         self.clip_max_norm = 0.1
         self.distributed = False
-        self.batch_size = 16
+        self.batch_size = batch_size
         self.backbone = 'resnet50'
         self.position_embedding = 'learned'
         self.max_sentence_len = 100
@@ -127,6 +128,7 @@ class MGSRTRConfig:
         resume_str = os.getenv('RESUME', "False")
         start_epoch = int(os.getenv("START_EPOCH", "0"))
         num_workers = int(os.getenv("NUM_WORKERS", "4"))
+        batch_size = int(os.getenv("BATCH_SIZE", "16"))
         version = os.getenv("VERSION", "V1")
         model_type_str = os.getenv("MODEL_TYPE", "mgsrtr")
         output_path = os.getenv('OUTPUT_PATH', '')
@@ -147,6 +149,7 @@ class MGSRTRConfig:
             dataset=dataset,
             device=device,
             flicker_path=flicker_path,
+            batch_size=batch_size,
             swig_path=swig_path,
             start_epoch=start_epoch,
             num_workers=num_workers,
