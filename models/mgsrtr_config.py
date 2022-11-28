@@ -83,7 +83,7 @@ class MGSRTRConfig:
         self.weight_decay = 0.0005
         self.clip_max_norm = 0.1
         self.distributed = False
-        self.batch_size = 8
+        self.batch_size = 16
         self.backbone = 'resnet50'
         self.position_embedding = 'learned'
         self.max_sentence_len = 100
