@@ -78,19 +78,19 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
 
         # reduce losses over all GPUs for logging purposes
         # scaled with different loss coefficients
-        # loss_dict_reduced = utils.reduce_dict(loss_dict)
-        # loss_dict_reduced_unscaled = {f'{k}_unscaled': v
-        #                               for k, v in loss_dict_reduced.items()}
-        # loss_dict_reduced_scaled = {k: v * weight_dict[k]
-        #                             for k, v in loss_dict_reduced.items() if k in weight_dict}
-        # losses_reduced_scaled = sum(loss_dict_reduced_scaled.values())
-        # loss_value = losses_reduced_scaled.item()
+        loss_dict_reduced = utils.reduce_dict(loss_dict)
+        loss_dict_reduced_unscaled = {f'{k}_unscaled': v
+                                      for k, v in loss_dict_reduced.items()}
+        loss_dict_reduced_scaled = {k: v * weight_dict[k]
+                                    for k, v in loss_dict_reduced.items() if k in weight_dict}
+        losses_reduced_scaled = sum(loss_dict_reduced_scaled.values())
+        loss_value = losses_reduced_scaled.item()
 
         # stop when loss is nan or inf
-        # if not math.isfinite(loss_value):
-        #     print("Loss is {}, stopping training".format(loss_value))
-        #     print(loss_dict_reduced)
-        #     sys.exit(1)
+        if not math.isfinite(loss_value):
+            print("Loss is {}, stopping training".format(loss_value))
+            print(loss_dict_reduced)
+            sys.exit(1)
 
         # loss backward & optimzer step
         optimizer.zero_grad()
@@ -99,28 +99,28 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm)
         optimizer.step()
 
-        # metric_logger.update(loss=loss_value, **loss_dict_reduced_scaled, **loss_dict_reduced_unscaled)
-        # metric_logger.update(lr=optimizer.param_groups[0]["lr"])
-        #
-        # if idx%print_freq == 0:
-        #     items = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
-        #     train_iterator.set_description(loader_desc.format(epoch, items['lr'], items['loss'], items['verb_acc_top1_unscaled'],
-        #                                     items['noun_acc_all_top1_unscaled'], items['bbox_acc_top5_unscaled']))
-        #
-        #     if writer:
-        #         writer.add_scalar("training loss", items['loss'], epoch*n_batches+idx)
-        #         writer.add_scalars('noun_accuracy', {
-        #             "top-1": items['noun_acc_top1_unscaled'],
-        #             "top-5": items['noun_acc_top5_unscaled'],
-        #         }, epoch * n_batches + idx)
-        #         writer.add_scalars('verb_accuracy', {
-        #             "top-1": items['verb_acc_top1_unscaled'],
-        #             "top-5": items['verb_acc_top5_unscaled'],
-        #         }, epoch * n_batches + idx)
-        #         writer.add_scalars('bounding_box_accuracy', {
-        #             "top-1": items['bbox_acc_top1_unscaled'],
-        #             "top-5": items['bbox_acc_top5_unscaled'],
-        #         }, epoch * n_batches + idx)
+        metric_logger.update(loss=loss_value, **loss_dict_reduced_scaled, **loss_dict_reduced_unscaled)
+        metric_logger.update(lr=optimizer.param_groups[0]["lr"])
+
+        if idx%print_freq == 0:
+            items = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
+            train_iterator.set_description(loader_desc.format(epoch, items['lr'], items['loss'], items['verb_acc_top1_unscaled'],
+                                            items['noun_acc_all_top1_unscaled'], items['bbox_acc_top5_unscaled']))
+
+            if writer:
+                writer.add_scalar("training loss", items['loss'], epoch*n_batches+idx)
+                writer.add_scalars('noun_accuracy', {
+                    "top-1": items['noun_acc_top1_unscaled'],
+                    "top-5": items['noun_acc_top5_unscaled'],
+                }, epoch * n_batches + idx)
+                writer.add_scalars('verb_accuracy', {
+                    "top-1": items['verb_acc_top1_unscaled'],
+                    "top-5": items['verb_acc_top5_unscaled'],
+                }, epoch * n_batches + idx)
+                writer.add_scalars('bounding_box_accuracy', {
+                    "top-1": items['bbox_acc_top1_unscaled'],
+                    "top-5": items['bbox_acc_top5_unscaled'],
+                }, epoch * n_batches + idx)
 
 
     # gather the stats from all processes
