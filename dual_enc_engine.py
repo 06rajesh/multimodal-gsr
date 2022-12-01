@@ -96,12 +96,19 @@ def train_one_epoch_dual_enc(model: torch.nn.Module, tokenizer:T5Tokenizer, crit
                                             items['noun_acc_all_top1_unscaled'], items['bbox_acc_top5_unscaled']))
 
             if writer:
-                writer.add_scalar("training loss", items['loss'], epoch*n_batches+idx)
-                writer.add_scalars('accuracy', {
-                    "noun": items['noun_acc_all_top1_unscaled'],
-                    "verb": items['verb_acc_top1_unscaled'],
-                    "bounding box": items['bbox_acc_top5_unscaled'],
-                }, epoch*n_batches+idx)
+                writer.add_scalar("training loss", items['loss'], epoch * n_batches + idx)
+                writer.add_scalars('noun_accuracy', {
+                    "top-1": items['noun_acc_top1_unscaled'],
+                    "top-5": items['noun_acc_top5_unscaled'],
+                }, epoch * n_batches + idx)
+                writer.add_scalars('verb_accuracy', {
+                    "top-1": items['verb_acc_top1_unscaled'],
+                    "top-5": items['verb_acc_top5_unscaled'],
+                }, epoch * n_batches + idx)
+                writer.add_scalars('bounding_box_accuracy', {
+                    "top-1": items['bbox_acc_top1_unscaled'],
+                    "top-5": items['bbox_acc_top5_unscaled'],
+                }, epoch * n_batches + idx)
 
 
     # gather the stats from all processes

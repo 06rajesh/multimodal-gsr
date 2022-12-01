@@ -206,7 +206,9 @@ def build(args):
     vbconfig.batch_size = args.batch_size
     vbconfig.device = args.device
 
-    if args.model_type == ModelType.T5_MGSRTR or args.model_type == ModelType.DuelEncGSR:
+    if args.model_type == ModelType.DuelEncGSR:
+        raise ValueError("Invalid model type")
+    elif args.model_type == ModelType.T5_MGSRTR:
         embedding_layer = VisualT5Embeddings(vbconfig, t5_model_name=t5modelname)
         t5_model = embedding_layer.text_encoder
         tokenizer = T5Tokenizer.from_pretrained(

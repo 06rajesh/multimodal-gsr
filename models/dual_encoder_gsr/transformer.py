@@ -40,12 +40,6 @@ class Transformer(nn.Module):
         self.decoder = TransformerDecoder(decoder_layer, num_decoder_layers, decoder_norm)
 
         self.text_input_proj = nn.Linear(768, d_model)
-        self.encoded_text_verb = nn.Sequential(
-            nn.Linear(max_sentence_len*768, max_sentence_len* (768 // 2)),
-            nn.ReLU(),
-            nn.Dropout(0.3),
-            nn.Linear(max_sentence_len* (768 // 2), d_model)
-        )
 
         # classifer (for verb prediction)
         self.verb_classifier = nn.Sequential(nn.Linear(d_model, d_model * 2),
@@ -81,23 +75,12 @@ class Transformer(nn.Module):
         text_memory = torch.transpose(text_memory, 0, 1)
         text_mask = text_mask.bool()
 
-        # print(encoded_text.shape)
-        # text_verb_query_inp = torch.flatten(encoded_text, start_dim=1)
-        # vhs_text = self.encoded_text_verb(text_verb_query_inp)
-        # vhs_text = vhs_text.view(bs, -1)
-        # print(vhs_text.shape)
-
         combined_mask = torch.cat([text_mask, mask], dim=1)
 
         verb_with_src = torch.cat([enc_verb_query_embed, src], dim=0)
         memory = self.encoder(verb_with_src, src_key_padding_mask=mem_mask, pos=pos_embed)
         vhs, memory = memory.split([1, h * w], dim=0)
         vhs = vhs.view(bs, -1)
-
-        print(text_memory.shape)
-        print(vhs.shape)
-
-        exit()
 
         verb_pred = self.verb_classifier(vhs).view(bs, self.num_verb_classes)
 

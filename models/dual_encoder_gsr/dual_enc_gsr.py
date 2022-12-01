@@ -79,7 +79,7 @@ class DualEncGSR(nn.Module):
                                                  nn.Dropout(0.2),
                                                  nn.Linear(hidden_dim * 2, 1))
 
-        print("GSRTR: ", sum(p.numel() for p in self.parameters() if p.requires_grad))
+        print("Duel Encoder GSR: ", sum(p.numel() for p in self.parameters() if p.requires_grad))
 
     def forward(self, samples, text_inputs, targets=None, inference=False):
         """ 
