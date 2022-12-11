@@ -13,6 +13,7 @@ import argparse
 import random
 import numpy as np
 import torch
+import json
 import datasets
 import util.misc as utils
 import cv2
@@ -28,6 +29,7 @@ from datasets import build_dataset
 from models import build_model
 from pathlib import Path
 from nltk.corpus import wordnet as wn
+from pathlib import Path
 
 from frame_semantic_transformer.data.tasks import FrameClassificationTask
 
@@ -258,62 +260,51 @@ def main(args:MGSRTRConfig, img_path:Path, caption_str: str):
 
 if __name__ == '__main__':
 
-    # dataset = 'flicker30k'
-    # flicker_path = './flicker30k'
-    # swig_path = './SWiG'
-    #
-    # args = Namespace(
-    #     lr=0.0001,
-    #     lr_backbone=1e-5,
-    #     lr_drop=100,
-    #     weight_decay=0.0001,
-    #     clip_max_norm=0.1,
-    #     batch_size=16,
-    #     backbone='resnet50',
-    #     position_embedding='learned',
-    #     max_sentence_len=100,
-    #     enc_layers=6,
-    #     dec_layers=6,
-    #     dim_feedforward=2048,
-    #     hidden_dim=512,
-    #     dropout=0.15,
-    #     nheads=8,
-    #     noun_loss_coef=1,
-    #     verb_loss_coef=1,
-    #     bbox_loss_coef=5,
-    #     bbox_conf_loss_coef=5,
-    #     giou_loss_coef=5,
-    #     # dataset_file='swig',
-    #     dataset_file=dataset,
-    #     swig_path=swig_path,
-    #     flicker_path=flicker_path,
-    #     dev=False,
-    #     test=True,
-    #     inference=True,
-    #     output_dir='./inference',
-    #     device='cpu',
-    #     seed=42,
-    #     epochs=40,
-    #     start_epoch=0,  # epochs should start from 0 and continue until less then epochs
-    #     num_workers=4,
-    #     saved_model='flicker30k/pretrained/v2/checkpoint.pth',
-    #     world_size=1,
-    #     dist_url='env://',
-    #     model_type=ModelType.MGSRTR,
-    #     image_path='./inference/talking-skating.jpg',
-    #     caption='A girl is skating on the street while talking with a mobile on her ear.'
-    # )
-
     args = MGSRTRConfig.from_env()
 
     args.inference = True
     args.test = True
     args.output_dir = './inference'
 
-    image = Path('./inference/talking-skating.jpg')
-    caption = 'A girl is skating on the street while talking with a mobile on her ear.'
-
     nltk.download('wordnet')
     if args.output_dir:
         Path(args.output_dir).mkdir(parents=True, exist_ok=True)
-    main(args, image, caption)
+
+    print(vars(args))
+
+    flickr_path = Path('./flicker30k')
+    flickr_jsons = flickr_path / 'flicker30k-jsons'
+    flickr_images = flickr_path / 'flickr30k-images'
+
+    test_json_file = flickr_jsons / 'test.json'
+
+    with open(test_json_file) as f:
+        test_jsons = json.load(f)
+
+    count = 0
+    for k in test_jsons.keys():
+        annot = test_jsons[k]
+        img_id = k.split('_')[-1]
+        filename = img_id + '.jpg'
+        image_path = flickr_images / filename
+
+        print(annot['caption'])
+        print(image_path)
+
+        main(args, image_path, annot['caption'])
+
+        count += 1
+        if count > 3:
+            break
+
+    # args.inference = True
+    # args.test = True
+    # args.output_dir = './inference'
+    #
+    # image = Path('./inference/talking-skating.jpg')
+    # caption = 'A girl is skating on the street while talking with a mobile on her ear.'
+    #
+    # nltk.download('wordnet')
+    # if args.output_dir:
+    #     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
+    # main(args, image, caption)

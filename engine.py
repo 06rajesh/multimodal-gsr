@@ -199,3 +199,120 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device, model_type:M
     stats = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
 
     return stats
+
+
+@torch.no_grad()
+def run_swig_analysis(model, tokenizer, criterion, data_loader, device, model_type:ModelType = ModelType.MGSRTR):
+    model.eval()
+    criterion.eval()
+    metric_logger = utils.MetricLogger(delimiter="  ")
+    print_freq = 10
+
+    correct_verbs = {}
+    incorrect_verbs = {}
+
+    incorrect_nouns = {}
+    incorrect_roles = {}
+
+    loader_desc = 'Test: loss = {:.4f}, accuracy (verb = {:.4f}, noun = {:.4f}, bounding box =  {:.4f})'
+    test_iterator = tqdm(data_loader, desc=loader_desc.format(0.0, 0.0, 0.0, 0.0))
+
+    for idx, (samples, captions, targets) in enumerate(test_iterator, 1):
+        text_inputs = captions
+        if model_type == ModelType.DuelEncGSR or model_type == ModelType.T5_MGSRTR:
+            text_inputs = get_captions_from_tuple(captions)
+
+        inputs = dict()
+        if tokenizer:
+            inputs = tokenizer(
+                text_inputs,
+                padding="max_length",
+                truncation=True,
+                return_token_type_ids=True,
+                return_attention_mask=True,
+                add_special_tokens=True,
+                return_tensors="pt",
+            )
+
+            mask = inputs['attention_mask'].bool()
+            inputs.update({
+                "mask": mask
+            })
+
+            inputs = inputs.to(device)
+
+        # data & target
+        samples = samples.to(device)
+        targets = [{k: v.to(device) if type(v) is not str else v for k, v in t.items()} for t in targets]
+
+        batch_size = len(targets)
+
+        # model output & calculate loss
+        if model_type == ModelType.GSRTR:
+            outputs = model(samples, targets)
+        else:
+            outputs = model(samples, inputs, targets)
+
+        # top-1 & top 5 verb acc and calculate verb loss
+        assert 'pred_verb' in outputs
+        verb_pred_logits = outputs['pred_verb'].squeeze(1)
+        gt_verbs = torch.stack([t['verbs'] for t in targets])
+
+        _, pred = verb_pred_logits.topk(1, 1, True, True)
+        pred = pred.t()
+        correct = gt_verbs.view(1, -1).expand_as(pred)
+        for i in range(batch_size):
+            item = correct[i].item()
+            if correct[i] == pred[i]:
+                if item in correct_verbs:
+                    correct_verbs[item] += 1
+                else:
+                    correct_verbs[item] = 1
+            else:
+                if item in incorrect_verbs:
+                    incorrect_verbs[item] += 1
+                else:
+                    incorrect_verbs[item] = 1
+
+        assert 'pred_noun' in outputs
+        pred_noun = outputs['pred_noun']
+
+        for i in range(batch_size):
+            p, t = pred_noun[i], targets[i]
+            roles = t['roles']
+            num_roles = len(roles)
+            role_targ = t['labels'][:num_roles]
+            role_targ = role_targ.long()
+            role_pred = p[:num_roles]
+
+            _, pred = role_pred.topk(1, 1, True, True)
+            pred_tile = pred.unsqueeze(2).tile(1, 1, role_targ.shape[1])
+            # num_roles x target_num -> num_roles x maxk x target_num
+            target_tile = role_targ.unsqueeze(1).tile(1, pred.shape[1], 1)
+            # num_roles x maxk x target_num
+            correct_tile = pred_tile.eq(target_tile)
+            # num_roles x maxk x target_num -> num_roles x maxk -> maxk x num_roles
+            correct = correct_tile.any(2).t()
+            correct = correct.squeeze()
+
+            incorrects = ((correct==False).nonzero()).squeeze(1).tolist()
+            for j in incorrects:
+
+                role_id = roles[j].item()
+                if role_id in incorrect_roles:
+                    incorrect_roles[role_id] += 1
+                else:
+                    incorrect_roles[role_id] = 1
+
+                inc_labels = target_tile[j].squeeze(0).tolist()
+                inc_set = set(inc_labels)
+                for inc_id in inc_set:
+                    if inc_id in incorrect_nouns:
+                        incorrect_nouns[inc_id] += 1
+                    else:
+                        incorrect_nouns[inc_id] = 1
+
+        if idx >= 500:
+            break
+
+    return incorrect_verbs, incorrect_nouns, incorrect_roles, correct_verbs

@@ -1,0 +1,7 @@
+verb: playing 
+role: performer, noun: child.n.01 
+role: role, noun: 'blank' 
+role: performance, noun: 'blank' 
+role: audience, noun: 'blank' 
+role: medium, noun: 'blank' 
+role: place, noun: sand.n.01 

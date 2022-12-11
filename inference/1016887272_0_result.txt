@@ -1,0 +1,4 @@
+verb: standing 
+role: agent, noun: man.n.01 
+role: location, noun: rope.n.01 
+role: point_of_contact, noun: 'blank' 

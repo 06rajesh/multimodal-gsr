@@ -33,6 +33,7 @@ class MGSRTRConfig:
     flicker_path: str
     dev: bool
     test: bool
+    analysis: bool
     inference: bool
     output_dir: str
     device: str
@@ -105,6 +106,7 @@ class MGSRTRConfig:
         self.flicker_path = flicker_path
         self.dev = False
         self.test = False
+        self.analysis = False
         self.inference = False
         self.output_dir = str(output_dir)
         self.device = device

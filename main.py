@@ -12,9 +12,10 @@ from torch.utils.data import DataLoader, DistributedSampler
 
 from datasets import build_dataset
 import util.misc as utils
+from util.analysis import idx_key_to_label
 from models import build_model
 from models.dual_encoder_gsr import build_dual_enc_model
-from engine import train_one_epoch, evaluate_swig
+from engine import train_one_epoch, evaluate_swig, run_swig_analysis
 from dual_enc_engine import train_one_epoch_dual_enc, evaluate_flicker
 from torch.utils.tensorboard import SummaryWriter
 from models.types import Namespace, ModelType
@@ -127,23 +128,39 @@ def main(args:MGSRTRConfig):
 
     # use saved model for evaluation (using dev set or test set)
     if args.dev or args.test:
-        checkpoint = torch.load(args.saved_model, map_location='cpu')
-        model.load_state_dict(checkpoint['model'])
+        # checkpoint = torch.load(args.saved_model, map_location='cpu')
+        # model.load_state_dict(checkpoint['model'])
         if args.dev:
             data_loader = data_loader_val
         elif args.test:
             data_loader = data_loader_test
 
-        if args.model_type == ModelType.DuelEncGSR:
-            test_stats = evaluate_flicker(model, criterion, data_loader, device, args.output_dir)
-        else:
-            test_stats = evaluate_swig(model, tokenizer, criterion, data_loader, device, args.output_dir)
-        log_stats = {**{f'test_{k}': v for k, v in test_stats.items()}}
+        if args.analysis:
+            log_stats = {}
+            verbs, nouns, roles, _ = run_swig_analysis(model, tokenizer, criterion, data_loader, device, args.output_dir)
+            verbs_stat = idx_key_to_label(verbs, args.idx_to_verb)
+            log_stats['verbs'] = verbs_stat
+            noun_stats = idx_key_to_label(nouns, args.idx_to_class)
+            log_stats['nouns'] = noun_stats
+            role_stats = idx_key_to_label(roles, args.idx_to_role)
+            log_stats['roles'] = role_stats
 
-        # write log
-        if args.output_dir and utils.is_main_process():
-            with (output_dir / "log.txt").open("a") as f:
-                f.write(json.dumps(log_stats) + "\n")
+            # write log
+            if args.output_dir and utils.is_main_process():
+                with (output_dir / "log_stats.txt").open("w") as f:
+                    f.write(json.dumps(log_stats) + "\n")
+
+        else:
+            if args.model_type == ModelType.DuelEncGSR:
+                test_stats = evaluate_flicker(model, criterion, data_loader, device, args.output_dir)
+            else:
+                test_stats = evaluate_swig(model, tokenizer, criterion, data_loader, device, args.output_dir)
+            log_stats = {**{f'test_{k}': v for k, v in test_stats.items()}}
+
+            # write log
+            if args.output_dir and utils.is_main_process():
+                with (output_dir / "log_tests.txt").open("a") as f:
+                    f.write(json.dumps(log_stats) + "\n")
 
         return None
 
@@ -208,10 +225,11 @@ def main(args:MGSRTRConfig):
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))
 
-
-
 if __name__ == '__main__':
     args = MGSRTRConfig.from_env()
 
-    # args = MGSRTRConfig.from_config('./flicker30k/pretrained/local.v3/config.json')
+    # args = MGSRTRConfig.from_config('./flicker30k/pretrained/v7/config.json')
+    args.test = True
+    args.analysis = True
+
     main(args)
