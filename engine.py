@@ -312,7 +312,4 @@ def run_swig_analysis(model, tokenizer, criterion, data_loader, device, model_ty
                     else:
                         incorrect_nouns[inc_id] = 1
 
-        if idx >= 500:
-            break
-
     return incorrect_verbs, incorrect_nouns, incorrect_roles, correct_verbs
