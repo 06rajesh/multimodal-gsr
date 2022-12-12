@@ -205,8 +205,6 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device, model_type:M
 def run_swig_analysis(model, tokenizer, criterion, data_loader, device, model_type:ModelType = ModelType.MGSRTR):
     model.eval()
     criterion.eval()
-    metric_logger = utils.MetricLogger(delimiter="  ")
-    print_freq = 10
 
     correct_verbs = {}
     incorrect_verbs = {}
