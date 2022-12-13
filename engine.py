@@ -212,7 +212,7 @@ def run_swig_analysis(model, tokenizer, criterion, data_loader, device, model_ty
     incorrect_nouns = {}
     incorrect_roles = {}
 
-    loader_desc = 'Test: loss = {:.4f}, accuracy (verb = {:.4f}, noun = {:.4f}, bounding box =  {:.4f})'
+    loader_desc = 'Test:'
     test_iterator = tqdm(data_loader, desc=loader_desc.format(0.0, 0.0, 0.0, 0.0))
 
     for idx, (samples, captions, targets) in enumerate(test_iterator, 1):
@@ -295,7 +295,6 @@ def run_swig_analysis(model, tokenizer, criterion, data_loader, device, model_ty
 
             incorrects = ((correct==False).nonzero()).squeeze(1).tolist()
             for j in incorrects:
-
                 role_id = roles[j].item()
                 if role_id in incorrect_roles:
                     incorrect_roles[role_id] += 1
