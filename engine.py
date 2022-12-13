@@ -298,8 +298,7 @@ def run_swig_analysis(model, tokenizer, criterion, data_loader, device, model_ty
                 try:
                     role_id = roles[j].item()
                 except ValueError:
-                    print(roles[j])
-                    exit()
+                    continue
 
                 if role_id in incorrect_roles:
                     incorrect_roles[role_id] += 1
