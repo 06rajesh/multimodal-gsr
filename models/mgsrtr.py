@@ -91,6 +91,7 @@ class MGSRTR(nn.Module):
                 pval = loaded_model[key]
                 model_dict[pname] = pval.clone().to(model_dict[pname].device)
             else:
+                print(key, model_dict[key].shape, loaded_model[key].shape)
                 missed_layer.append(key)
 
         if len(missed_layer) > 0:
