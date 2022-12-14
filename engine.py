@@ -130,7 +130,11 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
 
 
 @torch.no_grad()
-def evaluate_swig(model, tokenizer, criterion, data_loader, device, model_type:ModelType = ModelType.MGSRTR):
+def evaluate_swig(model, tokenizer, criterion, data_loader, device,
+                  model_type:ModelType = ModelType.MGSRTR,
+                  image_only:bool = False,
+                  captions_only:bool = False,
+                  ):
     model.eval()
     criterion.eval()
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -143,6 +147,9 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device, model_type:M
         text_inputs = captions
         if model_type == ModelType.DuelEncGSR or model_type == ModelType.T5_MGSRTR:
             text_inputs = get_captions_from_tuple(captions)
+
+        if image_only:
+            text_inputs = ["" for _ in range(len(text_inputs))]
 
         inputs = dict()
         if tokenizer:
@@ -163,6 +170,9 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device, model_type:M
 
             inputs = inputs.to(device)
 
+        if captions_only:
+            samples.tensors = torch.zeros(samples.tensors.size())
+
         # data & target
         samples = samples.to(device)
         targets = [{k: v.to(device) if type(v) is not str else v for k, v in t.items()} for t in targets]
@@ -174,6 +184,8 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device, model_type:M
             outputs = model(samples, inputs, targets)
         loss_dict = criterion(outputs, targets, eval=True)
         weight_dict = criterion.weight_dict
+
+
 
         # reduce losses over all GPUs for logging purposes
         # scaled with different loss coefficients

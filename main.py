@@ -21,7 +21,7 @@ from torch.utils.tensorboard import SummaryWriter
 from models.types import Namespace, ModelType
 from models.mgsrtr_config import MGSRTRConfig
 
-def main(args:MGSRTRConfig):
+def main(args:MGSRTRConfig, captions_only: bool = False, images_only: bool = False):
     utils.init_distributed_mode(args)
     # print("git:\n  {}\n".format(utils.get_sha()))
 
@@ -154,7 +154,7 @@ def main(args:MGSRTRConfig):
             if args.model_type == ModelType.DuelEncGSR:
                 test_stats = evaluate_flicker(model, criterion, data_loader, device, args.output_dir)
             else:
-                test_stats = evaluate_swig(model, tokenizer, criterion, data_loader, device, args.output_dir)
+                test_stats = evaluate_swig(model, tokenizer, criterion, data_loader, device, args.model_type, images_only=images_only, captions_only=captions_only)
             log_stats = {**{f'test_{k}': v for k, v in test_stats.items()}}
 
             # write log
@@ -230,6 +230,6 @@ if __name__ == '__main__':
 
     # args = MGSRTRConfig.from_config('./flicker30k/pretrained/v7/config.json')
     args.test = True
-    args.analysis = True
+    args.analysis = False
 
-    main(args)
+    main(args, images_only=True)
