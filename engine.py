@@ -337,7 +337,7 @@ def run_swig_analysis(model, tokenizer, criterion, data_loader, device, model_ty
                 else:
                     correct_roles[role_id] = 1
 
-        if idx >= 5:
-            break
+        # if idx >= 5:
+        #     break
 
     return incorrect_verbs, incorrect_nouns, incorrect_roles, correct_verbs, correct_roles
