@@ -132,7 +132,7 @@ def train_one_epoch(model: torch.nn.Module, tokenizer: BertTokenizer, criterion:
 @torch.no_grad()
 def evaluate_swig(model, tokenizer, criterion, data_loader, device,
                   model_type:ModelType = ModelType.MGSRTR,
-                  image_only:bool = False,
+                  images_only:bool = False,
                   captions_only:bool = False,
                   ):
     model.eval()
@@ -148,7 +148,7 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device,
         if model_type == ModelType.DuelEncGSR or model_type == ModelType.T5_MGSRTR:
             text_inputs = get_captions_from_tuple(captions)
 
-        if image_only:
+        if images_only:
             text_inputs = ["" for _ in range(len(text_inputs))]
 
         inputs = dict()
@@ -185,8 +185,6 @@ def evaluate_swig(model, tokenizer, criterion, data_loader, device,
         loss_dict = criterion(outputs, targets, eval=True)
         weight_dict = criterion.weight_dict
 
-
-
         # reduce losses over all GPUs for logging purposes
         # scaled with different loss coefficients
         loss_dict_reduced = utils.reduce_dict(loss_dict)
@@ -222,7 +220,9 @@ def run_swig_analysis(model, tokenizer, criterion, data_loader, device, model_ty
     incorrect_verbs = {}
 
     incorrect_nouns = {}
+
     incorrect_roles = {}
+    correct_roles = {}
 
     loader_desc = 'Test:'
     test_iterator = tqdm(data_loader, desc=loader_desc.format(0.0, 0.0, 0.0, 0.0))
@@ -305,6 +305,7 @@ def run_swig_analysis(model, tokenizer, criterion, data_loader, device, model_ty
             correct = correct_tile.any(2).t()
             correct = correct.squeeze()
 
+            corrects = ((correct==True).nonzero()).squeeze(1).tolist()
             incorrects = ((correct==False).nonzero()).squeeze(1).tolist()
             for j in incorrects:
                 try:
@@ -325,4 +326,18 @@ def run_swig_analysis(model, tokenizer, criterion, data_loader, device, model_ty
                     else:
                         incorrect_nouns[inc_id] = 1
 
-    return incorrect_verbs, incorrect_nouns, incorrect_roles, correct_verbs
+            for j in corrects:
+                try:
+                    role_id = roles[j].item()
+                except ValueError:
+                    continue
+
+                if role_id in correct_roles:
+                    correct_roles[role_id] += 1
+                else:
+                    correct_roles[role_id] = 1
+
+        # if idx >= 100:
+        #     break
+
+    return incorrect_verbs, incorrect_nouns, incorrect_roles, correct_verbs, correct_roles

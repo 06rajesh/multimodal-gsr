@@ -66,7 +66,7 @@ def main(args:MGSRTRConfig, captions_only: bool = False, images_only: bool = Fal
 
     if args.resume:
         model_path = Path(args.output_dir, args.saved_model)
-        if args.model_type == ModelType.DuelEncGSR:
+        if args.model_type == ModelType.DuelEncGSR or args.model_type == ModelType.GSRTR:
             checkpoint = torch.load(model_path, map_location=device)
             model.load_state_dict(checkpoint['model'])
         else:
@@ -137,13 +137,17 @@ def main(args:MGSRTRConfig, captions_only: bool = False, images_only: bool = Fal
 
         if args.analysis:
             log_stats = {}
-            verbs, nouns, roles, _ = run_swig_analysis(model, tokenizer, criterion, data_loader, device, args.output_dir)
+            verbs, nouns, roles, correct_verbs, correct_roles = run_swig_analysis(model, tokenizer, criterion, data_loader, device, args.output_dir)
             verbs_stat = idx_key_to_label(verbs, args.idx_to_verb)
             log_stats['verbs'] = verbs_stat
             noun_stats = idx_key_to_label(nouns, args.idx_to_class)
             log_stats['nouns'] = noun_stats
             role_stats = idx_key_to_label(roles, args.idx_to_role)
             log_stats['roles'] = role_stats
+            corr_verbs_stat = idx_key_to_label(correct_verbs, args.idx_to_verb)
+            log_stats['verbs_correct'] = corr_verbs_stat
+            corr_role_stats = idx_key_to_label(roles, args.idx_to_role)
+            log_stats['roles_correct'] = corr_role_stats
 
             # write log
             if args.output_dir and utils.is_main_process():
@@ -152,7 +156,7 @@ def main(args:MGSRTRConfig, captions_only: bool = False, images_only: bool = Fal
 
         else:
             if args.model_type == ModelType.DuelEncGSR:
-                test_stats = evaluate_flicker(model, criterion, data_loader, device, args.output_dir)
+                test_stats = evaluate_flicker(model, tokenizer, criterion, data_loader, device)
             else:
                 test_stats = evaluate_swig(model, tokenizer, criterion, data_loader, device, args.model_type, images_only=images_only, captions_only=captions_only)
             log_stats = {**{f'test_{k}': v for k, v in test_stats.items()}}
@@ -230,6 +234,6 @@ if __name__ == '__main__':
 
     # args = MGSRTRConfig.from_config('./flicker30k/pretrained/v7/config.json')
     args.test = True
-    args.analysis = False
+    args.analysis = True
 
-    main(args, images_only=True)
+    main(args)
