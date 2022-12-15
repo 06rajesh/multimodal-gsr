@@ -233,7 +233,7 @@ if __name__ == '__main__':
     args = MGSRTRConfig.from_env()
 
     # args = MGSRTRConfig.from_config('./flicker30k/pretrained/v7/config.json')
-    args.test = True
-    args.analysis = True
+    # args.test = True
+    # args.analysis = True
 
     main(args)
