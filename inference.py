@@ -151,26 +151,32 @@ def inference(model, device, tokenizer, caption, image_path=None, inference=Fals
         task = FrameClassificationTask(caption[0], caption[1])
         caption = task.get_input()
 
-    inputs = tokenizer(
-        caption,
-        padding="max_length",
-        truncation=True,
-        return_token_type_ids=True,
-        return_attention_mask=True,
-        add_special_tokens=True,
-        return_tensors="pt",
-    )
+    if tokenizer:
+        inputs = tokenizer(
+            caption,
+            padding="max_length",
+            truncation=True,
+            return_token_type_ids=True,
+            return_attention_mask=True,
+            add_special_tokens=True,
+            return_tensors="pt",
+        )
 
-    mask = inputs['attention_mask'].bool()
+        mask = inputs['attention_mask'].bool()
 
-    inputs.update({
-        "mask": mask
-    })
+        inputs.update({
+            "mask": mask
+        })
+
+        inputs = inputs.to(device)
 
     samples = image.to(device)
-    inputs = inputs.to(device)
 
-    output = model(samples, inputs, inference=inference)
+    if tokenizer:
+        output = model(samples, inputs, inference=inference)
+    else:
+        output = model(samples, inference=inference)
+
     pred_verb = output['pred_verb'][0]
     pred_noun = output['pred_noun'][0]
     pred_bbox = output['pred_bbox'][0]
@@ -206,6 +212,8 @@ def inference(model, device, tokenizer, caption, image_path=None, inference=Fals
 
     # outputs
     with open("{}/{}_{}_result.txt".format(output_dir, image_name, sample_idx), "w") as f:
+        text_line = "caption: {} \n".format(caption)
+        f.write(text_line)
         text_line = "verb: {} \n".format(verb_label)
         f.write(text_line)
         for i in range(num_roles):
@@ -216,7 +224,7 @@ def inference(model, device, tokenizer, caption, image_path=None, inference=Fals
                    pred_bbox_conf=pred_bbox_conf, output_dir=output_dir, sample_idx=sample_idx)
 
 
-def main(args:MGSRTRConfig, img_path:Path, caption_str: str):
+def main(args:MGSRTRConfig, img_path:Path, caption_str: str, img_idx=0):
     # utils.init_distributed_mode(args)
     print("git:\n  {}\n".format(utils.get_sha()))
 
@@ -245,7 +253,12 @@ def main(args:MGSRTRConfig, img_path:Path, caption_str: str):
 
     # build model
     device = torch.device(args.device)
-    model, tokenizer, _ = build_model(args)
+    if args.model_type == ModelType.GSRTR:
+        model, _ = build_model(args)
+        tokenizer = None
+    else:
+        model, tokenizer, _ = build_model(args)
+
     model.to(device)
     checkpoint = torch.load(args.saved_model, map_location='cpu')
     model.load_state_dict(checkpoint['model'])
@@ -253,7 +266,7 @@ def main(args:MGSRTRConfig, img_path:Path, caption_str: str):
     for idx, cap in enumerate(captions):
         inference(model, device, tokenizer, cap, image_path=str(img_path), inference=args.inference,
                   idx_to_verb=args.idx_to_verb, idx_to_role=args.idx_to_role, vidx_ridx=args.vidx_ridx,
-                  idx_to_class=args.idx_to_class, output_dir=args.output_dir, sample_idx=idx)
+                  idx_to_class=args.idx_to_class, output_dir=args.output_dir, sample_idx=idx+img_idx)
 
     return
 
@@ -264,7 +277,7 @@ if __name__ == '__main__':
 
     args.inference = True
     args.test = True
-    args.output_dir = './inference'
+    args.output_dir = './inference/swig_1'
 
     nltk.download('wordnet')
     if args.output_dir:
@@ -288,13 +301,10 @@ if __name__ == '__main__':
         filename = img_id + '.jpg'
         image_path = flickr_images / filename
 
-        print(annot['caption'])
-        print(image_path)
-
-        main(args, image_path, annot['caption'])
+        main(args, image_path, annot['caption'], img_idx=count)
 
         count += 1
-        if count > 3:
+        if count > 20:
             break
 
     # args.inference = True

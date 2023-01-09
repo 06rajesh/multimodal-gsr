@@ -149,10 +149,13 @@ def main(args:MGSRTRConfig, captions_only: bool = False, images_only: bool = Fal
             corr_role_stats = idx_key_to_label(roles, args.idx_to_role)
             log_stats['roles_correct'] = corr_role_stats
 
+            print(nouns)
+            print(noun_stats)
+
             # write log
-            if args.output_dir and utils.is_main_process():
-                with (output_dir / "log_stats.txt").open("w") as f:
-                    f.write(json.dumps(log_stats) + "\n")
+            # if args.output_dir and utils.is_main_process():
+            #     with (output_dir / "log_stats.txt").open("w") as f:
+            #         f.write(json.dumps(log_stats) + "\n")
 
         else:
             if args.model_type == ModelType.DuelEncGSR:
@@ -233,7 +236,7 @@ if __name__ == '__main__':
     args = MGSRTRConfig.from_env()
 
     # args = MGSRTRConfig.from_config('./flicker30k/pretrained/v7/config.json')
-    # args.test = True
-    # args.analysis = True
+    args.test = True
+    args.analysis = True
 
     main(args)
