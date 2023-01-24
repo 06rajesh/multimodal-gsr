@@ -71,8 +71,8 @@ from file. Currently, it supports two `DATASET`: `swig` or `flicker30k`. This co
 of four different types of model (`MODEL_TYPE`). `mgsrtr`, `duel_enc_gsr`, `t5_mgsrtr`, and `gsrtr`.
 Rest of the environment params are self-explanatory.
 
-Sample .env file as follows:
-```buildoutcfg
+Sample `.env` file as follows:
+```
 DATASET=flicker30k
 DEVICE=cpu
 NUM_WORKERS=4
@@ -80,7 +80,12 @@ DATASET_PATH=./flicker30k
 RESUME=False
 START_EPOCH=0
 VERSION=v6
-MODEL_TYPE=gsrtr
+MODEL_TYPE=mgsrtr
+```
+
+After setting the environment variables just run the following command.
+```
+python main.py
 ```
 
 ## Model Checkpoints
